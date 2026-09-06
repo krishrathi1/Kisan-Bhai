@@ -42,10 +42,10 @@ interface FasalCertificateRow {
 
 const SAMPLE_CERTIFICATES: FasalCertificate[] = [
   {
-    id: "BM-WHT-2026-001",
+    id: "KB-WHT-2026-001",
     userId: "demo-farmer-001",
-    crop: "Wheat",
-    quantity: "18 Quintal",
+    crop: "Wheat (गेहूं)",
+    quantity: "25 Quintal",
     harvestDate: "2026-08-24",
     location: "Haryana, India",
     photoUrl: null,

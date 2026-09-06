@@ -65,28 +65,28 @@ interface AuthContextType {
 
 const DEFAULT_DEMO_USER: AppUser = {
   id: "demo-farmer-001",
-  email: "harshuppal300@gmail.com",
-  displayName: "Harsh Uppal",
-  photoURL: null,
+  email: "demo@kisanbhai.com",
+  displayName: "Demo Kisan (किसान भाई)",
+  photoURL: "/desi-farmer-hero.jpg",
 };
 
 const DEFAULT_DEMO_PROFILE: UserProfile = {
   uid: "demo-farmer-001",
-  farmerId: "BM-KSN-2026-7842",
-  displayName: "Harsh Uppal",
-  email: "harshuppal300@gmail.com",
-  phone: "8905905953",
-  photoURL: null,
-  location: "Haryana, India",
+  farmerId: "KB-DEMO-2026-101",
+  displayName: "Demo Kisan (किसान भाई)",
+  email: "demo@kisanbhai.com",
+  phone: "9876543210",
+  photoURL: "/desi-farmer-hero.jpg",
+  location: "Karnal, Haryana, India",
   language: "hi",
-  crops: "Wheat, Mustard, Paddy",
+  crops: "Wheat (गेहूं), Mustard (सरसों), Paddy (धान)",
   memberSince: "2026",
 };
 
 const INITIAL_DEMO_TRANSACTIONS: Transaction[] = [
   {
     id: "tx-1",
-    description: "Wheat crop sale (Mandi)",
+    description: "Wheat crop sale (गेहूं बिक्री मंडी)",
     amount: 85000,
     type: "income",
     category: "Crop Sale",
@@ -94,7 +94,7 @@ const INITIAL_DEMO_TRANSACTIONS: Transaction[] = [
   },
   {
     id: "tx-2",
-    description: "Fertilizer & Seeds purchase",
+    description: "Fertilizer & Seeds purchase (खाद एवं बीज)",
     amount: 14500,
     type: "expense",
     category: "Inputs",
@@ -102,10 +102,18 @@ const INITIAL_DEMO_TRANSACTIONS: Transaction[] = [
   },
   {
     id: "tx-3",
-    description: "Tractor diesel & servicing",
+    description: "Tractor diesel & servicing (डीजल एवं सर्विस)",
     amount: 6200,
     type: "expense",
     category: "Machinery",
+    date: AppTimestamp.now(),
+  },
+  {
+    id: "tx-4",
+    description: "PM-Kisan Samman Nidhi (पीएम-किसान किस्त)",
+    amount: 2000,
+    type: "income",
+    category: "Gov Scheme",
     date: AppTimestamp.now(),
   },
 ];
@@ -166,11 +174,105 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setSessionToken("demo-google-token");
   };
 
-  const signInWithEmail = async (email: string, pass: string) => {
+  const signInAsDemoFarmer = async () => {
     setLoading(true);
+    const demoUser: AppUser = {
+      id: "demo-farmer-001",
+      email: "demo@kisanbhai.com",
+      displayName: "Demo Kisan (किसान भाई)",
+      photoURL: "/desi-farmer-hero.jpg",
+    };
+    const demoProfile: UserProfile = {
+      uid: "demo-farmer-001",
+      farmerId: "KB-DEMO-2026-101",
+      email: "demo@kisanbhai.com",
+      displayName: "Demo Kisan (किसान भाई)",
+      photoURL: "/desi-farmer-hero.jpg",
+      location: "Karnal, Haryana, India",
+      language: "hi",
+      crops: "Wheat (गेहूं), Mustard (सरसों), Rice (धान)",
+      memberSince: "2026",
+    };
+    const demoTransactions: Transaction[] = [
+      {
+        id: "tx-1",
+        description: "Mustard Crop Sale (सरसों बिक्री मंडी)",
+        amount: 48500,
+        type: "income",
+        category: "Crop Sale",
+        date: AppTimestamp.now(),
+      },
+      {
+        id: "tx-2",
+        description: "DAP Fertilizer Purchase (डीएपी खाद)",
+        amount: 2700,
+        type: "expense",
+        category: "Fertilizers",
+        date: AppTimestamp.now(),
+      },
+      {
+        id: "tx-3",
+        description: "PM-Kisan Samman Nidhi (पीएम-किसान किस्त)",
+        amount: 2000,
+        type: "income",
+        category: "Gov Scheme",
+        date: AppTimestamp.now(),
+      },
+      {
+        id: "tx-4",
+        description: "Tractor Diesel (डीजल खर्च)",
+        amount: 3200,
+        type: "expense",
+        category: "Fuel",
+        date: AppTimestamp.now(),
+      },
+    ];
+
+    const demoSession = {
+      access_token: "demo-session-token-kisanbhai",
+      refresh_token: "demo-refresh-token",
+      expires_at: Date.now() + 86400000 * 30,
+      user: {
+        id: "demo-farmer-001",
+        email: "demo@kisanbhai.com",
+        user_metadata: {
+          full_name: "Demo Kisan (किसान भाई)",
+          avatar_url: "/desi-farmer-hero.jpg",
+        },
+      },
+    };
+
+    try {
+      localStorage.setItem("kisanbhai.session", JSON.stringify(demoSession));
+      localStorage.setItem("kisanbhai_preferred_lang", "hi");
+    } catch {}
+
+    setUser(demoUser);
+    setUserProfile(demoProfile);
+    setTransactions(demoTransactions);
+    setSessionToken("demo-session-token-kisanbhai");
+    setLoading(false);
+  };
+
+  const signInWithEmail = async (emailOrUsername: string, pass: string) => {
+    setLoading(true);
+    const cleanId = (emailOrUsername || "").trim().toLowerCase();
+    const cleanPass = (pass || "").trim().toLowerCase();
+
+    // Check for hardcoded demo credentials (username: demo, pass: demo)
+    if (
+      cleanId === "demo" ||
+      cleanId === "demo@kisanbhai.com" ||
+      cleanId === "demo@gmail.com" ||
+      cleanPass === "demo"
+    ) {
+      await signInAsDemoFarmer();
+      return;
+    }
+
     try {
       if (supabaseConfigured) {
-        const result = await signInWithEmailRequest(email, pass);
+        const result = await signInWithEmailRequest(emailOrUsername, pass);
         hydrateAuthState(result);
         return;
       }
@@ -180,18 +282,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const demoUser: AppUser = {
       id: "farmer-" + Math.random().toString(36).slice(2, 7),
-      email: email || "farmer@beejmantra.in",
-      displayName: email ? email.split("@")[0] : "Ram Kishan",
+      email: emailOrUsername.includes("@") ? emailOrUsername : `${emailOrUsername}@kisanbhai.com`,
+      displayName: emailOrUsername.includes("@") ? emailOrUsername.split("@")[0] : emailOrUsername,
       photoURL: null,
     };
     const demoProfile: UserProfile = {
       uid: demoUser.id,
+      farmerId: "KB-KSN-2026-" + Math.floor(1000 + Math.random() * 9000),
       displayName: demoUser.displayName,
       email: demoUser.email,
       photoURL: null,
       location: "Haryana, India",
       language: "hi",
-      crops: "Wheat, Mustard",
+      crops: "Wheat, Mustard, Paddy",
+      memberSince: "2026",
     };
     setUser(demoUser);
     setUserProfile(demoProfile);
@@ -201,104 +305,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signUpWithEmail = async (email: string, pass: string) => {
     await signInWithEmail(email, pass);
-  };
-
-  const signInAsDemoFarmer = async () => {
-    setLoading(true);
-    const demoUser: AppUser = {
-      id: "demo-farmer-ramesh",
-      email: "ramesh.kisan@beejmantra.in",
-      displayName: "रामेश कुमार (Ramesh Kumar)",
-      photoURL: "/desi-farmer-hero.jpg",
-    };
-    const demoProfile: UserProfile = {
-      uid: "demo-farmer-ramesh",
-      email: "ramesh.kisan@beejmantra.in",
-      displayName: "रामेश कुमार (Ramesh Kumar)",
-      photoURL: "/desi-farmer-hero.jpg",
-      location: "Karnal, Haryana",
-      language: "hi",
-      crops: "Wheat (गेहूं), Mustard (सरसों), Rice (धान)",
-    };
-    const demoTransactions: Transaction[] = [
-      {
-        id: "tx-1",
-        description: "Mustard Crop Sale (सरसों बिक्री)",
-        amount: 48500,
-        type: "income",
-        category: "Crop Sale",
-        date: {
-          seconds: Math.floor((Date.now() - 86400000 * 2) / 1000),
-          nanoseconds: 0,
-          toDate: () => new Date(Date.now() - 86400000 * 2),
-          toMillis: () => Date.now() - 86400000 * 2,
-        } as any,
-      },
-      {
-        id: "tx-2",
-        description: "DAP Fertilizer Purchase (डीएपी खाद)",
-        amount: 2700,
-        type: "expense",
-        category: "Fertilizers",
-        date: {
-          seconds: Math.floor((Date.now() - 86400000 * 5) / 1000),
-          nanoseconds: 0,
-          toDate: () => new Date(Date.now() - 86400000 * 5),
-          toMillis: () => Date.now() - 86400000 * 5,
-        } as any,
-      },
-      {
-        id: "tx-3",
-        description: "PM-Kisan Samman Nidhi (पीएम-किसान किस्त)",
-        amount: 2000,
-        type: "income",
-        category: "Gov Scheme",
-        date: {
-          seconds: Math.floor((Date.now() - 86400000 * 10) / 1000),
-          nanoseconds: 0,
-          toDate: () => new Date(Date.now() - 86400000 * 10),
-          toMillis: () => Date.now() - 86400000 * 10,
-        } as any,
-      },
-      {
-        id: "tx-4",
-        description: "Tractor Diesel (डीजल खर्च)",
-        amount: 3200,
-        type: "expense",
-        category: "Fuel",
-        date: {
-          seconds: Math.floor((Date.now() - 86400000 * 14) / 1000),
-          nanoseconds: 0,
-          toDate: () => new Date(Date.now() - 86400000 * 14),
-          toMillis: () => Date.now() - 86400000 * 14,
-        } as any,
-      },
-    ];
-
-    const demoSession = {
-      access_token: "demo-session-token-beejmantra",
-      refresh_token: "demo-refresh-token",
-      expires_at: Date.now() + 86400000 * 30,
-      user: {
-        id: "demo-farmer-ramesh",
-        email: "ramesh.kisan@beejmantra.in",
-        user_metadata: {
-          full_name: "रामेश कुमार (Ramesh Kumar)",
-          avatar_url: "/desi-farmer-hero.jpg",
-        },
-      },
-    };
-
-    try {
-      localStorage.setItem("beejmantra.supabase.session", JSON.stringify(demoSession));
-      localStorage.setItem("beejmantra_preferred_lang", "hi");
-    } catch {}
-
-    setUser(demoUser);
-    setUserProfile(demoProfile);
-    setTransactions(demoTransactions);
-    setSessionToken("demo-session-token-beejmantra");
-    setLoading(false);
   };
 
   const signOut = async () => {
