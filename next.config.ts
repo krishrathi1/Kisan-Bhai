@@ -29,6 +29,15 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '10mb',
     },
   },
+  async redirects() {
+    return [
+      {
+        source: '/pricing',
+        destination: '/',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

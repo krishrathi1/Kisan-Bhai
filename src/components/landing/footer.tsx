@@ -4,7 +4,6 @@ import Link from "next/link";
 import {
   Sprout,
   PhoneCall,
-  Heart,
   Leaf,
   TrendingUp,
   Landmark,
@@ -12,7 +11,6 @@ import {
   PackageCheck,
   ShoppingBag,
   Link2,
-  BadgePercent,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/contexts/language-context";
@@ -37,7 +35,7 @@ export function Footer() {
             </h3>
             <p className="text-xs sm:text-sm text-[#5D4A3A]">
               {t("landing.footer.helplineSubtitle")}{" "}
-              <strong className="text-[#245B35] font-bold">+91 8905905953</strong>
+              <strong className="text-[#245B35] font-bold">+91 88591 77545</strong>
             </p>
           </div>
 
@@ -45,9 +43,9 @@ export function Footer() {
             asChild
             className="bg-[#245B35] hover:bg-[#1A4A28] active:scale-95 text-[#FAF5E8] font-bold px-7 py-6 rounded-full shadow-md text-base transition-transform hover:scale-105 border border-[#194A28]"
           >
-            <a href="tel:8905905953" className="flex items-center gap-2">
+            <a href="tel:8859177545" className="flex items-center gap-2">
               <PhoneCall className="h-4 w-4 text-[#FAF5E8]" />
-              <span>{t("landing.footer.callButton") || "Call +91 8905905953"}</span>
+              <span>{t("landing.footer.callButton") || "Call +91 88591 77545"}</span>
             </a>
           </Button>
         </div>
@@ -125,27 +123,10 @@ export function Footer() {
                   <span>{t("landing.footer.agriStore")}</span>
                 </Link>
               </li>
-              <li>
-                <Link href="/pricing" className="hover:text-[#FDE047] transition-colors flex items-center gap-2">
-                  <BadgePercent className="h-3.5 w-3.5 text-[#4ADE80]" />
-                  <span>Pricing & Plans</span>
-                </Link>
-              </li>
             </ul>
           </div>
 
         </div>
-
-        {/* Bottom Copyright */}
-        <div className="pt-8 border-t border-[#12361D] flex flex-col sm:flex-row items-center justify-between text-xs text-[#FAF5E8]/60 gap-4">
-          <p>© {new Date().getFullYear()} Krishi Mitra — {t("landing.footer.rights")}</p>
-          <div className="flex items-center gap-1 text-[#FAF5E8]/80 font-medium">
-            <span>{t("landing.footer.madeWith")}</span>
-            <Heart className="h-3.5 w-3.5 text-[#EF4444] fill-current mx-0.5" />
-            <span>{t("landing.footer.forIndianFarmers")}</span>
-          </div>
-        </div>
-
       </div>
     </footer>
   );

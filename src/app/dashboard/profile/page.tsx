@@ -83,7 +83,7 @@ export default function ProfilePage() {
   const [displayCrops, setDisplayCrops] = useState("Wheat, Mustard, Paddy");
   
   const [email, setEmail] = useState("harshuppal300@gmail.com");
-  const [phone, setPhone] = useState("8905905953");
+  const [phone, setPhone] = useState("88591 77545");
   const [location, setLocation] = useState("Haryana, India");
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -95,7 +95,7 @@ export default function ProfilePage() {
       const name = userProfile.displayName || "Harsh Uppal";
       const crops = userProfile.crops || "Wheat, Mustard, Paddy";
       const fid = userProfile.farmerId || "BM-KSN-2026-7842";
-      const userPhone = userProfile.phone || "8905905953";
+      const userPhone = userProfile.phone || "88591 77545";
 
       setCanonicalDisplayName(name);
       setCanonicalCrops(crops);
@@ -404,7 +404,7 @@ export default function ProfilePage() {
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      placeholder="e.g. 8905905953"
+                      placeholder="e.g. 88591 77545"
                       className="rounded-xl pl-10 font-mono font-semibold"
                     />
                     <Phone className="w-4 h-4 text-muted-foreground absolute left-3.5 top-3" />

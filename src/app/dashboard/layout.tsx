@@ -114,14 +114,14 @@ function DashboardPageLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <div className="flex-1 grid grid-cols-[auto_1fr] overflow-hidden">
+      <div className="flex-1 grid grid-cols-[auto_1fr] overflow-hidden min-h-0">
         <Sidebar>
           <SidebarHeader />
           <SidebarContent>
             <MainNav />
           </SidebarContent>
         </Sidebar>
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
+        <main className="overflow-y-auto p-4 sm:p-6 min-h-0">{children}</main>
       </div>
       <AnnapurnaChatbot />
     </div>

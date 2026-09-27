@@ -199,23 +199,37 @@ function getSmartFallbackDiagnosis(description?: string, language: string = "en"
 
 async function callGeminiAPI(input: DiagnoseCropDiseaseInput): Promise<DiagnoseCropDiseaseOutput | null> {
   const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GEMINI_API_KEY || '';
-  if (!apiKey || apiKey.trim().length === 0) return null;
+  if (!apiKey || apiKey.trim().length === 0 || apiKey.trim() === 'YOUR_GEMINI_API_KEY_HERE') {
+    console.warn("[CropDoctor] No Gemini API key configured. Set GOOGLE_GENAI_API_KEY in .env.local");
+    return null;
+  }
+
+  console.log("[CropDoctor] Calling Gemini API...", {
+    hasImage: !!input.photoDataUri,
+    hasDescription: !!input.description,
+    language: input.language,
+  });
 
   const promptText = `${getLanguageInstruction(input.language)}
 
 You are an expert plant pathologist and agronomist in India.
-Diagnose the crop disease from the provided image and/or description.
+Analyze the provided crop image carefully. Look at leaf color, spots, patterns, texture, wilting signs, pest marks, and any visible symptoms.
+Diagnose the exact crop disease from the provided image and/or description.
 User's preferred language: "${input.language}".
 ALL text in your output (diagnosis, solutions) MUST be strictly in language: "${input.language}".
+
+IMPORTANT: Base your diagnosis primarily on what you SEE in the image. Do NOT give generic answers. Identify the specific disease, pest, or deficiency visible in the image.
 
 Provide your response strictly as a JSON object:
 {
   "isPlant": true,
-  "diagnosis": "Crop Name & Disease Name — in ${input.language}",
-  "solutions": "1. Organic Remedy (in ${input.language}): ...\\n2. Chemical Remedy with exact dosage per litre (in ${input.language}): ...\\n3. Field Prevention Tips (in ${input.language}): ...",
+  "diagnosis": "Crop Name & Disease Name with scientific name — in ${input.language}",
+  "solutions": "1. Organic Remedy (in ${input.language}): detailed remedy with exact dosage...\\n2. Chemical Remedy with exact product name and dosage per litre (in ${input.language}): ...\\n3. Field Prevention Tips (in ${input.language}): ...",
   "documentationSearchQuery": "search query for documentation or ICAR guide",
-  "youtubeSearchQuery": "youtube video search query for disease management"
+  "youtubeSearchQuery": "youtube video search query for disease management in Hindi/English"
 }
+
+If the image does not contain a plant or crop, set "isPlant" to false and explain what you see instead.
 
 ${input.description ? `Farmer's Observation/Description: "${input.description}"` : ''}`;
 
@@ -230,14 +244,16 @@ ${input.description ? `Farmer's Observation/Description: "${input.description}"`
           data: match[2],
         },
       });
+      console.log("[CropDoctor] Image attached to request, MIME:", match[1]);
     }
   }
 
-  // Models to try in order of availability and speed
-  const models = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-3.1-flash-lite'];
+  // Models to try — vision-capable models in order of preference
+  const models = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash'];
 
   for (const model of models) {
     try {
+      console.log(`[CropDoctor] Trying model: ${model}...`);
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`,
         {
@@ -254,14 +270,19 @@ ${input.description ? `Farmer's Observation/Description: "${input.description}"`
       );
 
       if (!res.ok) {
-        console.warn(`Gemini model ${model} returned status ${res.status}`);
+        const errorBody = await res.text().catch(() => '');
+        console.warn(`[CropDoctor] Model ${model} returned status ${res.status}: ${errorBody.slice(0, 200)}`);
         continue;
       }
 
       const data = await res.json();
       const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!rawText) continue;
+      if (!rawText) {
+        console.warn(`[CropDoctor] Model ${model} returned empty response`);
+        continue;
+      }
 
+      console.log(`[CropDoctor] ✅ Got response from ${model}`);
       const parsed = JSON.parse(rawText);
       if (parsed.diagnosis && parsed.solutions) {
         return {
@@ -277,10 +298,11 @@ ${input.description ? `Farmer's Observation/Description: "${input.description}"`
         };
       }
     } catch (err) {
-      console.warn(`Error querying Gemini model ${model}:`, err);
+      console.warn(`[CropDoctor] Error querying model ${model}:`, err);
     }
   }
 
+  console.warn("[CropDoctor] All Gemini models failed, will try fallbacks");
   return null;
 }
 
@@ -290,18 +312,26 @@ export async function diagnoseCropDisease(input: DiagnoseCropDiseaseInput): Prom
     throw new Error('Either a photo or a description must be provided for diagnosis.');
   }
 
+  console.log("[CropDoctor] === Starting Diagnosis ===", {
+    hasImage: !!input.photoDataUri,
+    hasDescription: !!input.description,
+    language: input.language,
+  });
+
   // 1. Try Direct Google Gemini API Key (Multimodal Image + Language Diagnosis)
   try {
     const geminiResult = await callGeminiAPI(input);
     if (geminiResult && geminiResult.diagnosis && geminiResult.solutions) {
+      console.log("[CropDoctor] ✅ Gemini AI diagnosis successful");
       return geminiResult;
     }
   } catch (geminiErr) {
-    console.warn("Direct Gemini API call failed:", geminiErr);
+    console.warn("[CropDoctor] Direct Gemini API call failed:", geminiErr);
   }
 
-  // 2. If description is provided and Groq is configured, diagnose via Groq gpt-oss-20b
+  // 2. If description is provided and Groq is configured, diagnose via Groq
   if (input.description && isGroqConfigured && groqClient) {
+    console.log("[CropDoctor] Trying Groq text-based fallback...");
     try {
       const completion = await groqClient.chat.completions.create({
         model: 'openai/gpt-oss-20b',
@@ -331,6 +361,7 @@ Provide the output strictly as a JSON object with:
 
       const parsed = JSON.parse(completion.choices[0]?.message?.content || '{}');
       if (parsed.diagnosis && parsed.solutions) {
+        console.log("[CropDoctor] ✅ Groq diagnosis successful");
         return {
           isPlant: parsed.isPlant ?? true,
           diagnosis: parsed.diagnosis,
@@ -344,11 +375,12 @@ Provide the output strictly as a JSON object with:
         };
       }
     } catch (groqErr) {
-      console.warn("Groq fallback failed:", groqErr);
+      console.warn("[CropDoctor] Groq fallback failed:", groqErr);
     }
   }
 
   // 3. Guaranteed Smart Pathology Fallback (ICAR domain knowledge)
+  console.warn("[CropDoctor] ⚠️ Using HARDCODED fallback — no AI analysis was performed. Add your GOOGLE_GENAI_API_KEY in .env.local to enable real image analysis.");
   return getSmartFallbackDiagnosis(input.description, input.language);
 }
 

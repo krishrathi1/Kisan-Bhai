@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X, Sprout } from "lucide-react";
+import { Menu, X, Sprout, PhoneCall } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -31,7 +31,6 @@ export function Navbar({ onOpenAuth, onOpenVoice }: NavbarProps) {
     { id: "home", label: getNavLabel("home", "Home"), href: "#home" },
     { id: "features", label: getNavLabel("features", "Features"), href: "#features" },
     { id: "how-it-works", label: getNavLabel("howItWorks", "How it Works"), href: "#how-it-works" },
-    { id: "pricing", label: getNavLabel("pricing", "Pricing"), href: "/pricing" },
     { id: "languages", label: getNavLabel("languages", "Languages"), href: "#languages" },
     { id: "for-farmers", label: getNavLabel("forFarmers", "For Farmers"), href: "#for-farmers" },
     { id: "about-us", label: getNavLabel("aboutUs", "About Us"), href: "#about-us" },
@@ -87,6 +86,15 @@ export function Navbar({ onOpenAuth, onOpenVoice }: NavbarProps) {
 
           {/* Right Actions */}
           <div className="hidden sm:flex items-center gap-3">
+            <a
+              href="tel:8859177545"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#245B35]/10 hover:bg-[#245B35]/20 text-[#245B35] dark:text-emerald-400 font-bold text-xs border border-[#245B35]/25 transition-all shadow-xs"
+              title="Kisan Helpline 24x7: 88591 77545"
+            >
+              <PhoneCall className="h-3.5 w-3.5" />
+              <span>88591 77545</span>
+            </a>
+
             <ThemeToggle />
             <div className="text-foreground/80 hover:text-primary transition-colors">
               <LanguageSwitcher />
@@ -126,6 +134,13 @@ export function Navbar({ onOpenAuth, onOpenVoice }: NavbarProps) {
 
           {/* Mobile Hamburger Toggle */}
           <div className="flex sm:hidden items-center gap-2">
+            <a
+              href="tel:8859177545"
+              className="flex items-center justify-center p-2 rounded-full bg-[#245B35]/10 text-[#245B35] dark:text-emerald-400 border border-[#245B35]/25"
+              title="Call Helpline"
+            >
+              <PhoneCall className="h-4 w-4" />
+            </a>
             <ThemeToggle />
             <LanguageSwitcher />
             <Button
@@ -163,6 +178,13 @@ export function Navbar({ onOpenAuth, onOpenVoice }: NavbarProps) {
               ))}
             </nav>
             <div className="pt-3 border-t border-[#D8CABA] flex flex-col gap-2.5">
+              <a
+                href="tel:8859177545"
+                className="w-full flex items-center justify-center gap-2 bg-[#245B35]/10 text-[#245B35] font-bold rounded-xl py-2.5 border border-[#245B35]/25 text-sm"
+              >
+                <PhoneCall className="h-4 w-4" />
+                <span>Kisan Helpline: 88591 77545</span>
+              </a>
               <Button
                 asChild
                 className="w-full bg-[#245B35] hover:bg-[#1A4A28] text-[#FAF5E8] font-bold rounded-xl py-3 shadow-sm"
