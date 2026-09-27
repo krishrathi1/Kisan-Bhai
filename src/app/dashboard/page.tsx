@@ -101,16 +101,16 @@ export default function DashboardPage() {
       icon: Wallet,
     },
     {
+      title: t('nav.shop'),
+      description: t('dashboard.quickLinks.shop'),
+      href: "/dashboard/shop",
+      icon: ShoppingCart,
+    },
+    {
       title: t('nav.eLearning'),
       description: t('dashboard.quickLinks.eLearning'),
       href: "/dashboard/learn",
       icon: BookOpen,
-    },
-    {
-      title: t('nav.fasalCertificate'),
-      description: t('dashboard.quickLinks.fasalCertificate'),
-      href: "/dashboard/fasal-certificate",
-      icon: Link2,
     },
   ];
 
@@ -171,14 +171,22 @@ export default function DashboardPage() {
 
   return (
     <div className="flex-1 space-y-6">
-      <div className="pt-5">
-        <h1 className="text-3xl font-bold font-headline">{t('dashboard.welcome', { name: displayName })}</h1>
-        <p className="text-muted-foreground">
-          {t('dashboard.description')}
-        </p>
+      <div className="pt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold font-headline">{t('dashboard.welcome', { name: displayName })}</h1>
+          <p className="text-muted-foreground">
+            {t('dashboard.description')}
+          </p>
+        </div>
+        <Button asChild className="bg-[#245B35] hover:bg-[#1A4A28] text-[#FAF5E8] font-bold rounded-xl px-5 py-2.5 shadow-sm transition-all hover:scale-105 flex items-center gap-2 self-start sm:self-auto border border-[#194A28]">
+          <Link href="/dashboard/shop">
+            <ShoppingCart className="h-4 w-4" />
+            <span>{t('nav.shop')}</span>
+          </Link>
+        </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
         {quickLinks.map((link) => (
           <Link href={link.href} key={link.href} className="group">
             <Card className="h-full transition-all duration-300 group-hover:bg-secondary/50 group-hover:shadow-lg group-hover:-translate-y-1">

@@ -197,6 +197,11 @@ function getSmartFallbackDiagnosis(description?: string, language: string = "en"
   };
 }
 
+// Helper: wait for ms
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function callGeminiAPI(input: DiagnoseCropDiseaseInput): Promise<DiagnoseCropDiseaseOutput | null> {
   const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GEMINI_API_KEY || '';
   if (!apiKey || apiKey.trim().length === 0 || apiKey.trim() === 'YOUR_GEMINI_API_KEY_HERE') {
@@ -248,61 +253,122 @@ ${input.description ? `Farmer's Observation/Description: "${input.description}"`
     }
   }
 
-  // Models to try — vision-capable models in order of preference
-  const models = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash'];
+  const requestBody = JSON.stringify({
+    generationConfig: {
+      responseMimeType: 'application/json',
+      temperature: 0.2,
+    },
+    contents: [{ parts }],
+  });
+
+  // Models to try — latest Gemini 3 preview vision models
+  const models = ['gemini-3.5-flash', 'gemini-3.8-flash', 'gemini-3.8-flash-lite'];
+  const MAX_RETRIES = 3;
 
   for (const model of models) {
-    try {
-      console.log(`[CropDoctor] Trying model: ${model}...`);
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            generationConfig: {
-              responseMimeType: 'application/json',
-              temperature: 0.2,
-            },
-            contents: [{ parts }],
-          }),
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        console.log(`[CropDoctor] Trying model: ${model} (attempt ${attempt}/${MAX_RETRIES})...`);
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: requestBody,
+          }
+        );
+
+        // Rate limited (429) — wait and retry same model
+        if (res.status === 429) {
+          const retryAfter = res.headers.get('retry-after');
+          const waitMs = retryAfter ? parseInt(retryAfter) * 1000 : Math.min(2000 * Math.pow(2, attempt - 1), 15000);
+          console.warn(`[CropDoctor] Rate limited (429) on ${model}. Waiting ${waitMs}ms before retry...`);
+          await sleep(waitMs);
+          continue;
         }
-      );
 
-      if (!res.ok) {
-        const errorBody = await res.text().catch(() => '');
-        console.warn(`[CropDoctor] Model ${model} returned status ${res.status}: ${errorBody.slice(0, 200)}`);
-        continue;
-      }
+        // Service overloaded (503) — wait and retry
+        if (res.status === 503) {
+          const waitMs = Math.min(3000 * Math.pow(2, attempt - 1), 20000);
+          console.warn(`[CropDoctor] Service overloaded (503) on ${model}. Waiting ${waitMs}ms...`);
+          await sleep(waitMs);
+          continue;
+        }
 
-      const data = await res.json();
-      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!rawText) {
-        console.warn(`[CropDoctor] Model ${model} returned empty response`);
-        continue;
-      }
+        // Auth error — key is bad, stop entirely
+        if (res.status === 401 || res.status === 403) {
+          const errorBody = await res.text().catch(() => '');
+          console.error(`[CropDoctor] ❌ API key error (${res.status}): ${errorBody.slice(0, 300)}`);
+          console.error("[CropDoctor] Your GOOGLE_GENAI_API_KEY may be invalid. Get a new key from https://aistudio.google.com/apikey");
+          return null;
+        }
 
-      console.log(`[CropDoctor] ✅ Got response from ${model}`);
-      const parsed = JSON.parse(rawText);
-      if (parsed.diagnosis && parsed.solutions) {
-        return {
-          isPlant: parsed.isPlant ?? true,
-          diagnosis: parsed.diagnosis,
-          solutions: parsed.solutions,
-          documentationLink: parsed.documentationSearchQuery
-            ? `https://www.google.com/search?q=${encodeURIComponent(parsed.documentationSearchQuery)}`
-            : 'https://icar.org.in/',
-          youtubeLink: parsed.youtubeSearchQuery
-            ? `https://www.youtube.com/results?search_query=${encodeURIComponent(parsed.youtubeSearchQuery)}`
-            : 'https://www.youtube.com/results?search_query=crop+disease+management',
-        };
+        // Model not found — skip to next model
+        if (res.status === 404) {
+          console.warn(`[CropDoctor] Model ${model} not found (404), trying next...`);
+          break;
+        }
+
+        // Other server errors — retry if 5xx
+        if (!res.ok) {
+          const errorBody = await res.text().catch(() => '');
+          console.warn(`[CropDoctor] Model ${model} returned ${res.status}: ${errorBody.slice(0, 200)}`);
+          if (res.status >= 500 && attempt < MAX_RETRIES) {
+            await sleep(2000 * attempt);
+            continue;
+          }
+          break;
+        }
+
+        const data = await res.json();
+
+        // Safety-filtered
+        if (data.candidates?.[0]?.finishReason === 'SAFETY') {
+          console.warn(`[CropDoctor] Response safety-filtered on ${model}, trying next model...`);
+          break;
+        }
+
+        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!rawText) {
+          console.warn(`[CropDoctor] Model ${model} returned empty response`);
+          break;
+        }
+
+        console.log(`[CropDoctor] ✅ Got response from ${model} (attempt ${attempt})`);
+
+        // Parse JSON — strip markdown code fences if present
+        let jsonText = rawText.trim();
+        if (jsonText.startsWith('```')) {
+          jsonText = jsonText.replace(/^```json?\s*\n?/, '').replace(/\n?```\s*$/, '');
+        }
+
+        const parsed = JSON.parse(jsonText);
+        if (parsed.diagnosis && parsed.solutions) {
+          return {
+            isPlant: parsed.isPlant ?? true,
+            diagnosis: parsed.diagnosis,
+            solutions: parsed.solutions,
+            documentationLink: parsed.documentationSearchQuery
+              ? `https://www.google.com/search?q=${encodeURIComponent(parsed.documentationSearchQuery)}`
+              : 'https://icar.org.in/',
+            youtubeLink: parsed.youtubeSearchQuery
+              ? `https://www.youtube.com/results?search_query=${encodeURIComponent(parsed.youtubeSearchQuery)}`
+              : 'https://www.youtube.com/results?search_query=crop+disease+management',
+          };
+        }
+
+        console.warn(`[CropDoctor] Model ${model} response missing diagnosis/solutions`);
+        break;
+      } catch (err) {
+        console.warn(`[CropDoctor] Error with ${model} (attempt ${attempt}):`, err);
+        if (attempt < MAX_RETRIES) {
+          await sleep(1500 * attempt);
+        }
       }
-    } catch (err) {
-      console.warn(`[CropDoctor] Error querying model ${model}:`, err);
     }
   }
 
-  console.warn("[CropDoctor] All Gemini models failed, will try fallbacks");
+  console.warn("[CropDoctor] All Gemini models failed after retries, will try fallbacks");
   return null;
 }
 
