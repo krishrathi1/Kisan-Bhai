@@ -42,10 +42,11 @@ export function FarmerIdCard({ userProfile, className = "" }: FarmerIdCardProps)
   const memberSince = userProfile?.memberSince || "2026";
   const photoUrl = userProfile?.photoURL || "/desi-farmer-hero.jpg";
 
-  const verifyUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/dashboard/profile?id=${farmerId}`
-      : `https://beejmantra.in/dashboard/profile?id=${farmerId}`;
+  const [verifyUrl, setVerifyUrl] = useState(`https://beejmantra.in/dashboard/profile?id=${farmerId}`);
+
+  useEffect(() => {
+    setVerifyUrl(`${window.location.origin}/dashboard/profile?id=${farmerId}`);
+  }, [farmerId]);
 
   const getInitials = (name: string) => {
     const parts = name.trim().split(" ");

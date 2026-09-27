@@ -26,20 +26,10 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const { userProfile, loading: authLoading, updateUserProfile } = useAuth();
   
-  // 1. Initialize language state with immediate local storage lookup
-  const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY) as Language | null;
-        if (saved && ['en', 'hi', 'kn', 'bn', 'bho', 'pa'].includes(saved)) {
-          return saved;
-        }
-      } catch {}
-    }
-    return 'hi';
-  });
+  // 1. Initialize language state to default ('hi') to match SSR and prevent hydration mismatch
+  const [language, setLanguageState] = useState<Language>('hi');
 
-  // 2. Client-side hydration check
+  // 2. Client-side hydration: sync language from localStorage or userProfile
   useEffect(() => {
     try {
       const savedLang = localStorage.getItem(LANGUAGE_STORAGE_KEY) as Language | null;
@@ -51,6 +41,18 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
       // Storage access blocked
     }
   }, []);
+
+  useEffect(() => {
+    if (userProfile?.language && ['en', 'hi', 'kn', 'bn', 'bho', 'pa'].includes(userProfile.language)) {
+      setLanguageState(userProfile.language as Language);
+      try {
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, userProfile.language);
+        if (typeof document !== 'undefined') {
+          document.documentElement.lang = userProfile.language;
+        }
+      } catch {}
+    }
+  }, [userProfile?.language]);
 
   // 3. Central setLanguage that immediately updates state and persists
   const setLanguage = useCallback((newLang: Language) => {
