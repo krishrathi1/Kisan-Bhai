@@ -53,7 +53,7 @@ export function Navbar({ onOpenAuth, onOpenVoice }: NavbarProps) {
             </div>
             <div className="flex flex-col">
               <span className="font-headline font-black text-2xl text-foreground tracking-tight leading-tight">
-                BeejMantra
+                Krishi Mitra
               </span>
               <span className="text-[11px] font-sans text-muted-foreground font-semibold tracking-normal -mt-0.5">
                 {t("landing.nav.tagline")}

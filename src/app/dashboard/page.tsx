@@ -308,7 +308,7 @@ export default function DashboardPage() {
                   &ldquo;Apni Fasal. Apna Record. Verified.&rdquo;
                 </h3>
                 <p className="text-muted-foreground text-sm max-w-md">
-                  BeejMantra blockchain technology ka use karke aapki fasal ke important records
+                  Krishi Mitra blockchain technology ka use karke aapki fasal ke important records
                   ko secure aur tamper-evident banata hai.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 pt-2">

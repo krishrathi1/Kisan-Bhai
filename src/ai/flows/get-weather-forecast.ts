@@ -24,11 +24,15 @@ const DailyForecastSchema = z.object({
 
 const GetWeatherForecastOutputSchema = z.object({
   city: z.string().describe('The city of the forecast.'),
+  source: z.enum(['live', 'fallback']).describe('Whether the forecast came from Open-Meteo or fallback data.'),
+  forecastRainfallMm: z.number().describe('Total forecast precipitation in millimetres.'),
   current: z.object({
     temperature: z.string().describe('The current temperature.'),
+    temperatureC: z.number().describe('The current temperature in Celsius.'),
     condition: z.string().describe('The current weather condition localization key.'),
     wind: z.string().describe('The current wind speed.'),
     humidity: z.string().describe('The current humidity level.'),
+    humidityPercent: z.number().describe('The current relative humidity percentage.'),
     icon: z.enum(['CloudSun', 'Sun', 'CloudRain', 'Cloud', 'Wind', 'Droplets']).describe('An icon representing the current condition.'),
   }),
   forecast: z.array(DailyForecastSchema).length(7).describe('A 7-day weather forecast.'),
@@ -90,11 +94,15 @@ const generateDynamicFallback = (city: string): GetWeatherForecastOutput => {
 
   return {
     city: city.charAt(0).toUpperCase() + city.slice(1),
+    source: 'fallback',
+    forecastRainfallMm: 0,
     current: {
       temperature: '31°C',
+      temperatureC: 31,
       condition: currentConditionKey,
       wind: '14 km/h',
       humidity: '62%',
+      humidityPercent: 62,
       icon: currentIcon,
     },
     forecast: forecast as z.infer<typeof GetWeatherForecastOutputSchema>['forecast'],
@@ -126,7 +134,7 @@ const fetchWeatherForCity = async ({ city }: GetWeatherForecastInput): Promise<G
     const { latitude, longitude, name: resolvedCity } = location;
 
     // 2. Fetch live weather & 7-day forecast from Open-Meteo
-    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto`;
     
     const weatherController = new AbortController();
     const weatherTimeout = setTimeout(() => weatherController.abort(), 3500);
@@ -171,13 +179,21 @@ const fetchWeatherForCity = async ({ city }: GetWeatherForecastInput): Promise<G
       forecastItems.push({ ...last, day: `Day ${forecastItems.length + 1}` });
     }
 
+    const forecastRainfallMm = Array.isArray(daily.precipitation_sum)
+      ? daily.precipitation_sum.reduce((total: number, value: number) => total + (Number.isFinite(value) ? value : 0), 0)
+      : 0;
+
     return {
       city: resolvedCity || sanitizedCity,
+      source: 'live',
+      forecastRainfallMm: Number(forecastRainfallMm.toFixed(1)),
       current: {
         temperature: `${Math.round(current.temperature_2m)}°C`,
+        temperatureC: Number(current.temperature_2m),
         condition: currentConditionInfo.condition,
         wind: `${Math.round(current.wind_speed_10m)} km/h`,
         humidity: `${Math.round(current.relative_humidity_2m)}%`,
+        humidityPercent: Number(current.relative_humidity_2m),
         icon: currentConditionInfo.icon,
       },
       forecast: forecastItems.slice(0, 7) as z.infer<typeof GetWeatherForecastOutputSchema>['forecast'],

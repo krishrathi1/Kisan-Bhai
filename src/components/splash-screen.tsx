@@ -6,12 +6,12 @@ export const SplashScreen = () => {
       <div className="flex items-center gap-4 text-primary">
         <Image 
           src="/favicon.ico" 
-          alt="BeejMantra Logo" 
+          alt="Krishi Mitra Logo"
           width={64} 
           height={64} 
           className="animate-pulse" 
         />
-        <span className="text-4xl font-bold font-headline">BeejMantra</span>
+        <span className="text-4xl font-bold font-headline">Krishi Mitra</span>
       </div>
       <p className="mt-4 text-muted-foreground">Initializing your dashboard...</p>
     </div>

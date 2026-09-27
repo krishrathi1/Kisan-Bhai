@@ -56,7 +56,7 @@ export default function PricingPage() {
     },
     {
       id: "pro",
-      name: "BeejMantra Pro",
+      name: "Krishi Mitra Pro",
       tagline: "Advanced AI intelligence to maximize crop yield & income",
       priceMonthly: 49,
       priceAnnual: 499,
@@ -89,7 +89,7 @@ export default function PricingPage() {
       popular: false,
       badge: "For Organizations",
       features: [
-        "Everything in BeejMantra Pro",
+        "Everything in Krishi Mitra Pro",
         "Up to 100 Farmer Accounts under 1 Organization",
         "Bulk Blockchain Fasal Certificate Minting",
         "Collective Mandi Bargaining Analytics",
@@ -107,15 +107,15 @@ export default function PricingPage() {
   const faqs = [
     {
       q: "Can I pay using UPI (PhonePe, Google Pay, Paytm)?",
-      a: "Yes! BeejMantra supports all standard Indian payment methods including UPI (QR code / PhonePe / Google Pay / Paytm), RuPay debit cards, and Net Banking.",
+      a: "Yes! Krishi Mitra supports all standard Indian payment methods including UPI (QR code / PhonePe / Google Pay / Paytm), RuPay debit cards, and Net Banking.",
     },
     {
-      q: "How does the 14-day free trial work for BeejMantra Pro?",
+      q: "How does the 14-day free trial work for Krishi Mitra Pro?",
       a: "You get full, unrestricted access to all Pro features for 14 days without any upfront commitment. You can experience unlimited AI diagnosis, personalized crop planning, and predictive market trends risk-free.",
     },
     {
       q: "Are the Blockchain Fasal Certificates included in Pro?",
-      a: "Yes! BeejMantra Pro subscribers can generate unlimited tamper-evident blockchain crop records with verifiable QR codes for buyers, mandi traders, and banks at zero gas fees.",
+      a: "Yes! Krishi Mitra Pro subscribers can generate unlimited tamper-evident blockchain crop records with verifiable QR codes for buyers, mandi traders, and banks at zero gas fees.",
     },
     {
       q: "Can I cancel or switch my plan anytime?",
@@ -123,7 +123,7 @@ export default function PricingPage() {
     },
     {
       q: "Is there support in my regional language?",
-      a: "Yes, BeejMantra and its AI assistant fully support Hindi (हिन्दी), Punjabi (ਪੰਜਾਬੀ), Kannada (ಕನ್ನಡ), Bengali (বাংলা), Bhojpuri (भोजपुरी), and English.",
+      a: "Yes, Krishi Mitra and its AI assistant fully support Hindi (हिन्दी), Punjabi (ਪੰਜਾਬੀ), Kannada (ಕನ್ನಡ), Bengali (বাংলা), Bhojpuri (भोजपुरी), and English.",
     },
   ];
 
@@ -141,7 +141,7 @@ export default function PricingPage() {
             </div>
             <div className="flex flex-col">
               <span className="font-headline font-black text-xl text-foreground tracking-tight leading-tight">
-                BeejMantra
+                Krishi Mitra
               </span>
               <span className="text-[10px] font-sans text-muted-foreground font-semibold">
                 Transparent & Affordable Pricing
@@ -175,7 +175,7 @@ export default function PricingPage() {
           </h1>
 
           <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
-            Choose the plan that fits your farm. Start free, or supercharge your farming operations with <strong className="text-primary font-bold">BeejMantra Pro</strong> for less than the cost of a cup of tea per week.
+            Choose the plan that fits your farm. Start free, or supercharge your farming operations with <strong className="text-primary font-bold">Krishi Mitra Pro</strong> for less than the cost of a cup of tea per week.
           </p>
 
           {/* Monthly / Annual Toggle */}
@@ -305,7 +305,7 @@ export default function PricingPage() {
         <div className="rounded-3xl p-8 bg-muted/40 border border-border shadow-md space-y-6">
           <div className="text-center max-w-2xl mx-auto space-y-2">
             <h3 className="text-2xl font-bold font-headline text-foreground">
-              Why Upgrade to BeejMantra Pro?
+              Why Upgrade to Krishi Mitra Pro?
             </h3>
             <p className="text-xs sm:text-sm text-muted-foreground">
               Built in partnership with agricultural scientists to increase average farm profitability by ₹15,000–₹35,000 per harvest season.
@@ -406,7 +406,7 @@ export default function PricingPage() {
 
       {/* Footer */}
       <footer className="border-t border-border bg-card py-6 text-center text-xs text-muted-foreground">
-        <p>© 2026 BeejMantra Ecosystem. Empowering Indian Farmers with AI & Blockchain.</p>
+        <p>© 2026 Krishi Mitra Ecosystem. Empowering Indian Farmers with AI & Blockchain.</p>
       </footer>
     </div>
   );

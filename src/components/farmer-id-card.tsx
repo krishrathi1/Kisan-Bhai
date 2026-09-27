@@ -144,7 +144,7 @@ export function FarmerIdCard({ userProfile, className = "" }: FarmerIdCardProps)
               </div>
               <div>
                 <h3 className="font-headline font-black text-lg tracking-tight text-[#FAF5E8] leading-tight flex items-center gap-1.5">
-                  BEEJMANTRA
+                  KRISHI MITRA
                   <span className="text-[10px] uppercase font-bold tracking-widest text-[#D4AF37] px-1.5 py-0.5 rounded bg-black/30 border border-[#D4AF37]/30">
                     KISAN ID
                   </span>

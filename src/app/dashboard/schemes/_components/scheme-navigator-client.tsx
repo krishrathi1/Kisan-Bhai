@@ -10,6 +10,7 @@ import { navigateGovernmentSchemes, type NavigateGovernmentSchemesOutput } from 
 import { Bot, CheckCircle, ExternalLink, Mic, Target, Search, Square } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { useTranslation } from '@/contexts/language-context';
 
@@ -134,18 +135,36 @@ export function SchemeNavigatorClient() {
         {isLoading && <LoadingSkeleton />}
         
         {result && !isLoading && (
-            <div className="border-t pt-4">
-                <h3 className="font-semibold mb-2">{result.schemeName}</h3>
-                <p className="text-sm text-muted-foreground mb-4">{result.answer}</p>
-                <Alert className="mb-4">
-                    <Target className="h-4 w-4" />
-                    <AlertTitle>{t('schemes.client.eligibility')}</AlertTitle>
-                    <AlertDescription>{result.eligibility}</AlertDescription>
+            <div className="border-t pt-4 space-y-3">
+                <div>
+                  <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-300 mb-1">
+                    AI Recommended Scheme
+                  </Badge>
+                  <h3 className="font-bold text-sm text-foreground">{result.schemeName}</h3>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">{result.answer}</p>
+                <Alert className="bg-emerald-500/5 border-emerald-500/20 py-2.5">
+                    <Target className="h-4 w-4 text-emerald-600" />
+                    <AlertTitle className="text-xs font-bold text-emerald-800 dark:text-emerald-300">{t('schemes.client.eligibility')}</AlertTitle>
+                    <AlertDescription className="text-xs text-foreground mt-0.5">{result.eligibility}</AlertDescription>
                 </Alert>
-                <Button asChild className="w-full">
-                    <Link href={result.applicationLink} target="_blank" rel="noopener noreferrer">
-                    {t('schemes.client.applyNow')} <ExternalLink className="ml-2 h-4 w-4" />
-                    </Link>
+                <div className="p-3 bg-muted/40 rounded-lg text-xs space-y-1.5 border border-border/60">
+                  <span className="font-bold text-foreground block">📄 In-Page Application Steps:</span>
+                  <p className="text-[11px] text-muted-foreground">1. Keep your Aadhaar, Land Record (Khatauni/7-12), and Bank Passbook ready.</p>
+                  <p className="text-[11px] text-muted-foreground">2. Visit your local Common Service Centre (CSC) or Gram Panchayat office.</p>
+                  <p className="text-[11px] text-muted-foreground">3. Submit Aadhaar eKYC for direct bank account seeding.</p>
+                </div>
+                <Button 
+                  onClick={() => {
+                    toast({
+                      title: "✅ Scheme Saved to Profile",
+                      description: `${result.schemeName} guidance saved. Follow the in-page checklist to apply!`,
+                    });
+                  }}
+                  className="w-full bg-emerald-700 hover:bg-emerald-800 text-white text-xs h-9"
+                >
+                  <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
+                  Save Scheme Checklist
                 </Button>
             </div>
         )}

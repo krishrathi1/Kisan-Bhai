@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Link2 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useTranslation } from "@/contexts/language-context";
 import { CardBottomTrim } from "./desi-folk-art";
 
@@ -111,28 +111,14 @@ export function FeatureCards() {
         </div>
       ),
     },
-    {
-      id: "fasalCertificate",
-      href: "/dashboard/fasal-certificate",
-      color: "#19C866",
-      bgColor: "#EAF9F0",
-      title: t("landing.features.fasalCertificate.title") || "Fasal Certificate",
-      description: t("landing.features.fasalCertificate.description") || "Apni fasal ka verified digital record banayein.",
-      cta: t("landing.features.fasalCertificate.cta") || "Generate Certificate →",
-      icon: (
-        <div className="w-14 h-14 rounded-full bg-[#E8F8EE] border-2 border-[#19C866] flex items-center justify-center shadow-xs">
-          <Link2 className="w-7 h-7 text-[#19C866]" strokeWidth={2.2} />
-        </div>
-      ),
-    },
   ];
 
   return (
     <section id="features" className="relative w-full bg-[#F7EFD9] py-8 sm:py-12 border-b border-[#D8CABA]/70 select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Grid with 6 Feature Cards */}
+        {/* Grid with 5 Feature Cards */}
         <div className="relative">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {features.map((feature) => (
               <Link
                 key={feature.id}

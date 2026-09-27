@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw, TrendingUp, TrendingDown, Minus, Search, Filter, ExternalLink, ShieldCheck, Radio } from 'lucide-react';
+import { RefreshCw, TrendingUp, TrendingDown, Minus, Search, ExternalLink, ShieldCheck, MapPin, Calendar, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from '@/contexts/language-context';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
+import { INDIAN_STATES } from '@/lib/mandi-service';
 
 interface MarketData {
   timestamp: string;
@@ -18,7 +20,14 @@ interface MarketData {
   price: string;
   change: string;
   state?: string;
+  district?: string;
+  market?: string;
   variety?: string;
+  grade?: string;
+  arrivalDate?: string;
+  minPrice?: string;
+  maxPrice?: string;
+  modalPrice?: string;
   source: string;
   sourceUrl?: string;
 }
@@ -29,33 +38,161 @@ interface MarketPricesResponse {
   timestamp: string;
   count: number;
   source?: string;
+  state?: string;
+  district?: string;
   error?: string;
+  isFallback?: boolean;
+}
+
+interface CachedMarketEntry {
+  data: MarketData[];
+  source?: string;
+  isFallback?: boolean;
+  count: number;
+  cachedAt: string;
+  cacheDate: string; // YYYY-MM-DD for daily auto-expiry
+}
+
+const CACHE_PREFIX = 'krishi_mandi_cache_';
+
+const getTodayDateString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getCacheKey = (state: string, district: string) =>
+  `${CACHE_PREFIX}${state || 'all'}_${district || 'all'}`;
+
+function getFromCache(state: string, district: string): CachedMarketEntry | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const key = getCacheKey(state, district);
+    const item = localStorage.getItem(key);
+    if (item) {
+      const parsed = JSON.parse(item) as CachedMarketEntry;
+      const today = getTodayDateString();
+      // Daily Auto-Update: Only return cached data if it is from TODAY
+      if (parsed.cacheDate === today && parsed.data && parsed.data.length > 0) {
+        return parsed;
+      }
+      // If from a previous day, auto-clear so fresh daily prices are fetched
+      localStorage.removeItem(key);
+    }
+  } catch (e) {
+    // localStorage not available or error
+  }
+  return null;
+}
+
+function setToCache(state: string, district: string, entry: Omit<CachedMarketEntry, 'cacheDate'>) {
+  if (typeof window === 'undefined') return;
+  try {
+    const key = getCacheKey(state, district);
+    const todayEntry: CachedMarketEntry = {
+      ...entry,
+      cacheDate: getTodayDateString(),
+    };
+    localStorage.setItem(key, JSON.stringify(todayEntry));
+  } catch (e) {
+    // ignore storage quota issues
+  }
 }
 
 export function MarketPrices() {
   const { t } = useTranslation();
+  const { userProfile } = useAuth();
   const [marketData, setMarketData] = useState<MarketData[]>([]);
-  const [filteredData, setFilteredData] = useState<MarketData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedState, setSelectedState] = useState<string>('All States');
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('all');
   const [selectedCommodity, setSelectedCommodity] = useState<string>('all');
-  const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [selectedSource, setSelectedSource] = useState<string>('all');
-  const [apiSource, setApiSource] = useState<string>('Agmarknet & e-NAM Web Feed');
+  const [apiSource, setApiSource] = useState<string>('Agmarknet (Govt of India)');
+  const [isFallback, setIsFallback] = useState<boolean>(false);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [isFromCache, setIsFromCache] = useState<boolean>(false);
 
-  const fetchMarketData = async () => {
+  // Initialize selected state from user profile location if available
+  useEffect(() => {
+    if (userProfile?.location) {
+      const loc = userProfile.location.toLowerCase();
+      for (const s of INDIAN_STATES) {
+        if (s === 'All States') continue;
+        if (loc.includes(s.toLowerCase())) {
+          setSelectedState(s);
+          break;
+        }
+      }
+    }
+  }, [userProfile?.location]);
+
+  const fetchMarketData = async (
+    stateToFetch = selectedState,
+    districtToFetch = selectedDistrict,
+    forceRefresh = false
+  ) => {
+    // Check daily cache first if user has not explicitly clicked refresh
+    if (!forceRefresh) {
+      const cached = getFromCache(stateToFetch, districtToFetch);
+      if (cached && cached.data && cached.data.length > 0) {
+        setMarketData(cached.data);
+        if (cached.source) setApiSource(cached.source);
+        setIsFallback(Boolean(cached.isFallback));
+        setLastUpdated(cached.cachedAt);
+        setIsFromCache(true);
+        return;
+      }
+    }
+
     setIsLoading(true);
     try {
-      const response = await fetch('/api/market-prices', { cache: 'no-store' });
+      const params = new URLSearchParams();
+      if (stateToFetch && stateToFetch !== 'All States') {
+        params.set('state', stateToFetch);
+      }
+      if (districtToFetch && districtToFetch !== 'all') {
+        params.set('district', districtToFetch);
+      }
+      // If no state explicitly chosen yet, try user profile location
+      if ((!stateToFetch || stateToFetch === 'All States') && userProfile?.location) {
+        params.set('location', userProfile.location);
+      }
+      params.set('limit', '2000');
+      // Cache-busting parameter to ensure fresh live data on explicit refresh
+      params.set('_t', Date.now().toString());
+
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+      const response = await fetch(`/api/market-prices${queryString}`, { cache: 'no-store' });
       const result: MarketPricesResponse = await response.json();
-      
+
       if (result.success) {
         setMarketData(result.data);
-        setFilteredData(result.data);
         if (result.source) setApiSource(result.source);
+        setIsFallback(Boolean(result.isFallback));
+        const refreshTime = new Date().toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        });
+        setLastUpdated(refreshTime);
+        setIsFromCache(false);
+
+        // Store fetched data in daily cache
+        setToCache(stateToFetch, districtToFetch, {
+          data: result.data,
+          source: result.source,
+          isFallback: result.isFallback,
+          count: result.count,
+          cachedAt: refreshTime,
+        });
+
         toast({
-          title: "✅ Live Mandi Prices Updated",
-          description: `Fetched ${result.count} commodities from verified feeds`,
+          title: forceRefresh ? "🔄 Mandi Prices Refreshed" : "✅ Live Mandi Prices Loaded",
+          description: `Loaded ${result.count} commodities for ${stateToFetch} (${refreshTime})`,
         });
       } else {
         throw new Error(result.error || 'Failed to fetch data');
@@ -72,51 +209,68 @@ export function MarketPrices() {
     }
   };
 
+  // Re-fetch when selected state changes (uses cache if already visited)
   useEffect(() => {
-    fetchMarketData();
-  }, []);
+    setSelectedDistrict('all');
+    setSelectedCommodity('all');
+    fetchMarketData(selectedState, 'all', false);
+  }, [selectedState]);
 
-  useEffect(() => {
-    let filtered = marketData;
+  // Extract unique districts in current state data
+  const uniqueDistricts = useMemo(() => {
+    const districts = marketData.map((d) => d.district).filter(Boolean) as string[];
+    return Array.from(new Set(districts)).sort();
+  }, [marketData]);
 
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(item =>
-        item.commodity.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.source?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
+  // Extract unique commodities in current data
+  const uniqueCommodities = useMemo(() => {
+    const commodities = marketData.map((d) => {
+      // Strip parenthetical variety to group main commodities in selector
+      return d.commodity.replace(/\s*\([^)]*\)/, '').trim();
+    }).filter(Boolean);
+    return Array.from(new Set(commodities)).sort();
+  }, [marketData]);
 
-    // Filter by commodity
-    if (selectedCommodity !== 'all') {
-      filtered = filtered.filter(item => item.commodity === selectedCommodity);
-    }
+  // Extract unique sources
+  const uniqueSources = useMemo(() => {
+    return Array.from(new Set(marketData.map((item) => item.source).filter(Boolean))).sort();
+  }, [marketData]);
 
-    // Filter by location
-    if (selectedLocation !== 'all') {
-      filtered = filtered.filter(item => item.location === selectedLocation);
-    }
+  // Client-side filtering across the currently loaded authentic records
+  const filteredData = useMemo(() => {
+    return marketData.filter((item) => {
+      // 1. Search filter
+      if (searchTerm) {
+        const query = searchTerm.toLowerCase();
+        const matchesQuery =
+          item.commodity.toLowerCase().includes(query) ||
+          item.location.toLowerCase().includes(query) ||
+          (item.district && item.district.toLowerCase().includes(query)) ||
+          (item.variety && item.variety.toLowerCase().includes(query));
+        if (!matchesQuery) return false;
+      }
 
-    // Filter by source
-    if (selectedSource !== 'all') {
-      filtered = filtered.filter(item => item.source === selectedSource);
-    }
+      // 2. District filter
+      if (selectedDistrict !== 'all' && item.district !== selectedDistrict) {
+        return false;
+      }
 
-    setFilteredData(filtered);
-  }, [searchTerm, selectedCommodity, selectedLocation, selectedSource, marketData]);
+      // 3. Commodity filter
+      if (selectedCommodity !== 'all') {
+        const itemBaseCommodity = item.commodity.replace(/\s*\([^)]*\)/, '').trim();
+        if (itemBaseCommodity !== selectedCommodity && !item.commodity.includes(selectedCommodity)) {
+          return false;
+        }
+      }
 
-  const getUniqueCommodities = () => {
-    return Array.from(new Set(marketData.map(item => item.commodity))).sort();
-  };
+      // 4. Source filter
+      if (selectedSource !== 'all' && item.source !== selectedSource) {
+        return false;
+      }
 
-  const getUniqueLocations = () => {
-    return Array.from(new Set(marketData.map(item => item.location))).sort();
-  };
-
-  const getUniqueSources = () => {
-    return Array.from(new Set(marketData.map(item => item.source).filter(Boolean))).sort();
-  };
+      return true;
+    });
+  }, [marketData, searchTerm, selectedDistrict, selectedCommodity, selectedSource]);
 
   const getChangeColor = (change: string) => {
     if (!change) return 'text-muted-foreground';
@@ -136,25 +290,12 @@ export function MarketPrices() {
     return <Minus className="h-4 w-4" />;
   };
 
-  const getSourceBadgeStyle = (source: string = '') => {
-    if (source.includes('Agmarknet')) {
-      return 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800';
-    }
-    if (source.includes('e-NAM')) {
-      return 'bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800';
-    }
-    if (source.includes('NCDEX')) {
-      return 'bg-purple-50 text-purple-800 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800';
-    }
-    return 'bg-slate-50 text-slate-800 border-slate-200';
-  };
-
   return (
     <div className="space-y-6">
-      {/* Header with Live indicator and refresh button */}
+      {/* Header with Live indicator, current scope, and refresh button */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-emerald-500/5 p-4 rounded-2xl border border-emerald-500/10">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
@@ -162,65 +303,157 @@ export function MarketPrices() {
             <h2 className="text-xl font-bold font-headline">Live APMC Mandi Prices</h2>
             <Badge variant="outline" className="text-xs bg-white/80 dark:bg-slate-900 border-emerald-200">
               <ShieldCheck className="h-3 w-3 mr-1 text-emerald-600" />
-              Verified Feed
+              Official Agmarknet Feed
             </Badge>
+            <Badge variant="outline" className="text-xs bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300">
+              <Calendar className="h-3 w-3 mr-1 text-emerald-600" />
+              {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </Badge>
+            {selectedState !== 'All States' && (
+              <Badge className="bg-emerald-700 text-white text-xs hover:bg-emerald-800">
+                <MapPin className="h-3 w-3 mr-1" />
+                {selectedState}
+              </Badge>
+            )}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Real-time modal spot prices from <strong className="text-foreground">{apiSource}</strong>
+          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
+            <span>
+              Real-time daily modal transactions from <strong className="text-foreground">{apiSource}</strong>
+            </span>
+            {lastUpdated && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                {isFromCache ? '⚡ Cached at ' : '🔄 Updated at '} {lastUpdated}
+              </span>
+            )}
           </p>
         </div>
-        <Button onClick={fetchMarketData} disabled={isLoading} size="sm" className="shrink-0 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full px-4 shadow-sm">
-          <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
-          {isLoading ? 'Scraping Feeds...' : 'Refresh Prices'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => fetchMarketData(selectedState, selectedDistrict, true)}
+            disabled={isLoading}
+            size="sm"
+            className="shrink-0 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full px-4 shadow-sm"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Fetching Mandis...' : 'Refresh Live Prices'}
+          </Button>
+        </div>
       </div>
 
-      {/* Filters & Search */}
+      {/* Primary Filters: State, District, Commodity, Search */}
       <Card className="border border-border/80 shadow-sm">
         <CardContent className="p-4 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search commodity or mandi..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 text-xs h-9"
-              />
+            {/* State Selector */}
+            <div>
+              <label className="text-[11px] font-semibold text-muted-foreground mb-1 block">1. Select State (All India)</label>
+              <Select value={selectedState} onValueChange={setSelectedState}>
+                <SelectTrigger className="text-xs h-9 font-medium">
+                  <SelectValue placeholder="Select State" />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {INDIAN_STATES.map((state) => (
+                    <SelectItem key={state} value={state}>
+                      {state}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={selectedCommodity} onValueChange={setSelectedCommodity}>
-              <SelectTrigger className="text-xs h-9">
-                <SelectValue placeholder="All Commodities" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Commodities</SelectItem>
-                {getUniqueCommodities().map(commodity => (
-                  <SelectItem key={commodity} value={commodity}>{commodity}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-              <SelectTrigger className="text-xs h-9">
-                <SelectValue placeholder="All Mandis" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Mandis</SelectItem>
-                {getUniqueLocations().map(location => (
-                  <SelectItem key={location} value={location}>{location}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={selectedSource} onValueChange={setSelectedSource}>
-              <SelectTrigger className="text-xs h-9">
-                <SelectValue placeholder="All Sources" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Price Sources</SelectItem>
-                {getUniqueSources().map(source => (
-                  <SelectItem key={source} value={source}>{source}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+
+            {/* District Selector */}
+            <div>
+              <label className="text-[11px] font-semibold text-muted-foreground mb-1 block">2. Select District</label>
+              <Select
+                value={selectedDistrict}
+                onValueChange={setSelectedDistrict}
+                disabled={uniqueDistricts.length === 0}
+              >
+                <SelectTrigger className="text-xs h-9">
+                  <SelectValue placeholder="All Districts" />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <SelectItem value="all">All Districts ({uniqueDistricts.length})</SelectItem>
+                  {uniqueDistricts.map((district) => (
+                    <SelectItem key={district} value={district}>
+                      {district}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Commodity Selector */}
+            <div>
+              <label className="text-[11px] font-semibold text-muted-foreground mb-1 block">3. Select Crop</label>
+              <Select
+                value={selectedCommodity}
+                onValueChange={setSelectedCommodity}
+                disabled={uniqueCommodities.length === 0}
+              >
+                <SelectTrigger className="text-xs h-9">
+                  <SelectValue placeholder="All Crops" />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <SelectItem value="all">All Crops ({uniqueCommodities.length})</SelectItem>
+                  {uniqueCommodities.map((comm) => (
+                    <SelectItem key={comm} value={comm}>
+                      {comm}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Search Input */}
+            <div>
+              <label className="text-[11px] font-semibold text-muted-foreground mb-1 block">4. Search Mandi / Crop</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="e.g. Potato, Onion, Khanna, Lasalgaon..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 text-xs h-9"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Active Filters Summary Bar */}
+          <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/50">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span>
+                State: <strong className="text-foreground">{selectedState}</strong>
+              </span>
+              {selectedDistrict !== 'all' && (
+                <span>
+                  District: <strong className="text-foreground">{selectedDistrict}</strong>
+                </span>
+              )}
+              {selectedCommodity !== 'all' && (
+                <span>
+                  Crop: <strong className="text-foreground">{selectedCommodity}</strong>
+                </span>
+              )}
+              <span>
+                Matching Mandis: <strong className="text-emerald-700 dark:text-emerald-400 font-bold">{filteredData.length}</strong>
+              </span>
+            </div>
+            {(selectedDistrict !== 'all' || selectedCommodity !== 'all' || searchTerm) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-[11px] px-2 text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  setSelectedDistrict('all');
+                  setSelectedCommodity('all');
+                  setSearchTerm('');
+                }}
+              >
+                Reset Filters
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -229,15 +462,24 @@ export function MarketPrices() {
       <Card className="border border-border/80 shadow-sm overflow-hidden">
         <CardHeader className="py-4 px-6 border-b bg-muted/20">
           <CardTitle className="text-base font-bold flex items-center justify-between">
-            <span>📋 Price Details</span>
-            <span className="text-xs font-normal text-muted-foreground">Showing {filteredData.length} records</span>
+            <span className="flex items-center gap-2">
+              <span>📋 Official APMC Mandi Rates</span>
+              {isFallback && (
+                <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-950/40 text-[11px]">
+                  Offline Benchmark Mode
+                </Badge>
+              )}
+            </span>
+            <span className="text-xs font-normal text-muted-foreground">
+              Showing {filteredData.length} authentic records
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6 space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full rounded-lg" />
+              {[...Array(6)].map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full rounded-lg" />
               ))}
             </div>
           ) : filteredData.length > 0 ? (
@@ -245,32 +487,55 @@ export function MarketPrices() {
               <table className="w-full text-xs sm:text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40 text-muted-foreground text-xs uppercase tracking-wider">
-                    <th className="text-left py-3 px-4 font-semibold">Commodity</th>
-                    <th className="text-left py-3 px-4 font-semibold">Location / Mandi</th>
-                    <th className="text-left py-3 px-4 font-semibold">Price (₹/Q)</th>
-                    <th className="text-left py-3 px-4 font-semibold">24h Change</th>
-                    <th className="text-left py-3 px-4 font-semibold">Price Source</th>
+                    <th className="text-left py-3.5 px-4 font-semibold">Commodity & Variety</th>
+                    <th className="text-left py-3.5 px-4 font-semibold">Mandi Market Yard</th>
+                    <th className="text-left py-3.5 px-4 font-semibold">Arrival Date</th>
+                    <th className="text-left py-3.5 px-4 font-semibold">Modal Price (₹/Q)</th>
+                    <th className="text-left py-3.5 px-4 font-semibold">Min - Max (₹/Q)</th>
+                    <th className="text-left py-3.5 px-4 font-semibold">Official Source</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
                   {filteredData.map((item, index) => (
                     <tr key={index} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-3.5 px-4 font-bold text-foreground">
-                        {item.commodity}
+                      <td className="py-3.5 px-4">
+                        <div className="font-bold text-foreground text-sm">{item.commodity}</div>
+                        {item.variety && item.variety !== 'Other' && (
+                          <div className="text-[11px] text-muted-foreground">Variety: {item.variety}</div>
+                        )}
+                        {item.grade && item.grade !== 'FAQ' && (
+                          <Badge variant="outline" className="text-[10px] mt-0.5 px-1.5 py-0 h-4">
+                            Grade: {item.grade}
+                          </Badge>
+                        )}
                       </td>
                       <td className="py-3.5 px-4">
-                        <Badge variant="outline" className="font-medium bg-background text-xs">
-                          {item.location}
-                        </Badge>
+                        <div className="font-medium text-foreground">{item.market || item.location}</div>
+                        <div className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <MapPin className="h-3 w-3 inline text-emerald-600" />
+                          {item.district ? `${item.district}, ` : ''}{item.state}
+                        </div>
                       </td>
-                      <td className="py-3.5 px-4 font-extrabold text-emerald-700 dark:text-emerald-400 text-sm sm:text-base">
-                        ₹{item.price}
-                      </td>
-                      <td className={`py-3.5 px-4`}>
-                        <span className={`inline-flex items-center gap-1 text-xs ${getChangeColor(item.change)}`}>
-                          {getChangeIcon(item.change)}
-                          {item.change ? `${item.change}` : '0.00'}
+                      <td className="py-3.5 px-4">
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground font-mono">
+                          <Calendar className="h-3 w-3" />
+                          {item.arrivalDate || item.timestamp.split(' ')[0]}
                         </span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="font-extrabold text-emerald-700 dark:text-emerald-400 text-sm sm:text-base">
+                          ₹{item.price}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">per quintal</div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {item.minPrice && item.maxPrice ? (
+                          <div className="text-xs font-medium text-foreground">
+                            ₹{item.minPrice} - ₹{item.maxPrice}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
                       </td>
                       <td className="py-3.5 px-4">
                         <a
@@ -279,10 +544,11 @@ export function MarketPrices() {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 group"
                         >
-                          <Badge 
-                            variant="outline" 
-                            className={`text-[11px] font-semibold py-1 px-2.5 rounded-full border ${getSourceBadgeStyle(item.source)} transition-transform group-hover:scale-105`}
+                          <Badge
+                            variant="outline"
+                            className="text-[11px] font-semibold py-1 px-2.5 rounded-full border bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 transition-transform group-hover:scale-105"
                           >
+                            <CheckCircle2 className="h-3 w-3 mr-1 text-emerald-600 inline" />
                             <span>{item.source || 'Agmarknet'}</span>
                             <ExternalLink className="h-3 w-3 opacity-60 group-hover:opacity-100 ml-1 shrink-0" />
                           </Badge>
@@ -294,8 +560,24 @@ export function MarketPrices() {
               </table>
             </div>
           ) : (
-            <div className="text-center py-12 text-muted-foreground text-sm">
-              No commodities found matching your filters.
+            <div className="text-center py-12 text-muted-foreground text-sm space-y-2">
+              <p className="font-semibold text-foreground">No commodities found matching current filters.</p>
+              <p className="text-xs">
+                Try selecting a different State or District from the dropdowns above to view active mandis.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={() => {
+                  setSelectedState('All States');
+                  setSelectedDistrict('all');
+                  setSelectedCommodity('all');
+                  setSearchTerm('');
+                }}
+              >
+                Reset All Filters
+              </Button>
             </div>
           )}
         </CardContent>

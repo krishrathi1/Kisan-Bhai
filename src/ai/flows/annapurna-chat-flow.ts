@@ -11,6 +11,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { callGroqChat, isGroqConfigured, DEFAULT_GROQ_MODEL } from '@/ai/groq';
+import { getLanguageInstruction } from '@/lib/soil-data';
 
 const AnnapurnaChatInputSchema = z.object({
   query: z.string().describe("The user's message to the chatbot."),
@@ -72,17 +73,12 @@ const AnnapurnaChatOutputSchema = z.object({
 });
 export type AnnapurnaChatOutput = z.infer<typeof AnnapurnaChatOutputSchema>;
 
-const SYSTEM_PROMPT = `You are Annapurna, an empathetic, highly knowledgeable AI agricultural assistant for BeejMantra (a farmer operating system in India).
+const SYSTEM_PROMPT = `You are Annapurna, an empathetic, highly knowledgeable AI agricultural assistant for Krishi Mitra (a farmer operating system in India).
 Your goal is to understand what the farmer needs and provide a clear, concise, actionable response.
 
-Language Requirement:
-The user is speaking in language code: "{{language}}".
-If language is "hi", respond in friendly Hindi (Devanagari).
-If language is "pa", respond in friendly Punjabi (Gurmukhi).
-If language is "kn", respond in Kannada.
-If language is "bn", respond in Bengali.
-If language is "bho", respond in Bhojpuri.
-If language is "en", respond in English.
+CRITICAL LANGUAGE REQUIREMENT:
+{{language_instruction}}
+You MUST strictly obey the language instruction above. Never mix languages. Output all response text solely in the target language.
 
 Available Intents:
 - "navigate_dashboard": Return to main dashboard.
@@ -132,7 +128,7 @@ export async function annapurnaChat(input: AnnapurnaChatInput): Promise<Annapurn
         messages: [
           {
             role: "system",
-            content: SYSTEM_PROMPT.replace("{{language}}", language),
+            content: SYSTEM_PROMPT.replace("{{language_instruction}}", getLanguageInstruction(language)),
           },
           {
             role: "user",
@@ -143,7 +139,7 @@ export async function annapurnaChat(input: AnnapurnaChatInput): Promise<Annapurn
 
       const parsed = JSON.parse(groqResponse);
       return {
-        response: parsed.response || "Namaste! How can I help your farm today?",
+        response: parsed.response || (language === 'hi' ? "नमस्ते! मैं आपकी क्या सहायता कर सकती हूँ?" : "Hello! How can I help your farm today?"),
         intent: (parsed.intent as AnnapurnaIntent) || "general_question",
         entities: parsed.entities || {},
       };
@@ -167,8 +163,8 @@ const annapurnaPrompt = ai.definePrompt({
   name: 'annapurnaPrompt',
   input: { schema: AnnapurnaChatInputSchema },
   output: { schema: AnnapurnaChatOutputSchema },
-  prompt: `You are Annapurna, a friendly and helpful AI farming assistant for BeejMantra.
-  The user is interacting in '{{language}}'. Your response must be in this language.
+  prompt: `You are Annapurna, a friendly and helpful AI farming assistant for Krishi Mitra.
+  CRITICAL LANGUAGE REQUIREMENT: The user is interacting in '{{language}}'. You MUST respond ENTIRELY in this language without mixing words from any other language.
   Analyze the user's query: "{{query}}"
   Determine intent and extract entities, and formulate a helpful short response.`,
 });
@@ -194,46 +190,92 @@ function getOfflineFallbackResponse(query: string, language: string): AnnapurnaC
   const q = query.toLowerCase();
 
   let intent: AnnapurnaIntent = 'general_question';
-  let responseEn = "I am here to help you with crop doctor, mandi prices, weather, government schemes, and verified farming records. What would you like to explore?";
-  let responseHi = "नमस्ते! मैं फसल डॉक्टर, मंडी भाव, मौसम, सरकारी योजनाओं और किसान पहचान में आपकी सहायता कर सकती हूँ। आप क्या जानना चाहते हैं?";
 
-  if (q.includes("doctor") || q.includes("disease") || q.includes("bimari") || q.includes("keeda") || q.includes("pest")) {
-    intent = "navigate_crop_doctor";
-    responseEn = "I can help you diagnose crop diseases. Would you like to open the Crop Doctor?";
-    responseHi = "मैं आपकी फसल की बीमारी पहचानने में मदद कर सकती हूँ। क्या आप फसल डॉक्टर खोलना चाहते हैं?";
-  } else if (q.includes("mandi") || q.includes("bhav") || q.includes("price") || q.includes("rate") || q.includes("market")) {
-    intent = "query_market_prices";
-    responseEn = "You can view live mandi prices and commodity trends in the Market Analyst. Shall I take you there?";
-    responseHi = "आप मंडी विश्लेषक में आज के ताज़ा मंडी भाव देख सकते हैं। क्या मैं आपको वहाँ ले चलूँ?";
-  } else if (q.includes("weather") || q.includes("mausam") || q.includes("barish") || q.includes("rain")) {
-    intent = "navigate_weather";
-    responseEn = "I can show you today's weather forecast and farming advisory. Shall we open Weather?";
-    responseHi = "मैं आपको आज का मौसम और कृषि सलाह दिखा सकती हूँ। क्या मौसम पेज खोलें?";
-  } else if (q.includes("yojana") || q.includes("scheme") || q.includes("kisan") || q.includes("subsidy")) {
-    intent = "navigate_schemes";
-    responseEn = "You can check PM-KISAN and agricultural subsidies in Government Schemes. Would you like to check them?";
-    responseHi = "आप सरकारी योजनाएं सेक्शन में पीएम किसान और सब्सिडी की जानकारी देख सकते हैं।";
-  } else if (q.includes("certificate") || q.includes("fasal") || q.includes("blockchain") || q.includes("praman")) {
-    intent = "navigate_fasal_certificate";
-    responseEn = "You can generate a blockchain-verified digital Fasal Certificate with QR code. Shall we open Fasal Certificate?";
-    responseHi = "आप ब्लॉकचेन सत्यापित डिजिटल फसल प्रमाणपत्र तैयार कर सकते हैं। क्या फसल प्रमाणपत्र खोलें?";
-  } else if (q.includes("id") || q.includes("card") || q.includes("profile")) {
-    intent = "navigate_profile";
-    responseEn = "You can view and download your Kisan Digital ID Card in your profile. Shall we go to Profile?";
-    responseHi = "आप अपनी प्रोफ़ाइल में किसान डिजिटल आईडी कार्ड देख और डाउनलोड कर सकते हैं।";
-  }
-
-  const responseMap: Record<string, string> = {
-    hi: responseHi,
-    en: responseEn,
-    pa: responseHi,
-    bho: responseHi,
-    bn: responseEn,
-    kn: responseEn,
+  const responses: Record<string, Record<string, string>> = {
+    general: {
+      en: "I am here to help you with crop doctor, mandi prices, weather, government schemes, and verified farming records. What would you like to explore?",
+      hi: "नमस्ते! मैं फसल डॉक्टर, मंडी भाव, मौसम, सरकारी योजनाओं और किसान पहचान में आपकी सहायता कर सकती हूँ। आप क्या जानना चाहते हैं?",
+      pa: "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ ਫ਼ਸਲ ਡਾਕਟਰ, ਮੰਡੀ ਭਾਅ, ਮੌਸਮ ਅਤੇ ਸਰਕਾਰੀ ਸਕੀਮਾਂ ਵਿੱਚ ਤੁਹਾਡੀ ਮਦਦ ਕਰ ਸਕਦੀ ਹਾਂ।",
+      bn: "নমস্কার! আমি ফসল ডাক্তার, মান্ডি দর, আবহাওয়া এবং সরকারি প্রকল্পে আপনাকে সাহায্য করতে পারি।",
+      kn: "ನಮಸ್ಕಾರ! ನಾನು ಬೆಳೆ ವೈದ್ಯ, ಮಾರುಕಟ್ಟೆ ಬೆಲೆಗಳು, ಹವಾಮಾನ ಮತ್ತು ಸರ್ಕಾರಿ ಯೋಜನೆಗಳಲ್ಲಿ ನಿಮಗೆ ಸಹಾಯ ಮಾಡಬಲ್ಲೆ.",
+      bho: "प्रणाम! हम फसल डॉक्टर, मंडी भाव, मौसम आ सरकारी योजना में रउआ सहायता कर सकीं।"
+    },
+    doctor: {
+      en: "I can help you diagnose crop diseases. Would you like to open the Crop Doctor?",
+      hi: "मैं आपकी फसल की बीमारी पहचानने में मदद कर सकती हूँ। क्या आप फसल डॉक्टर खोलना चाहते हैं?",
+      pa: "ਮੈਂ ਫ਼ਸਲ ਦੀ ਬਿਮਾਰੀ ਪਛਾਣਨ ਵਿੱਚ ਮਦਦ ਕਰ ਸਕਦੀ ਹਾਂ। ਕੀ ਤੁਸੀਂ ਫ਼ਸਲ ਡਾਕਟਰ ਖੋਲ੍ਹਣਾ ਚਾਹੁੰਦੇ ਹੋ?",
+      bn: "আমি ফসলের রোগ নির্ণয় করতে সাহায্য করতে পারি। আপনি কি ফসল ডাক্তার খুলতে চান?",
+      kn: "ಬೆಳೆ ರೋಗಗಳನ್ನು ಪತ್ತೆಹಚ್ಚಲು ನಾನು ಸಹಾಯ ಮಾಡಬಲ್ಲೆ. ನೀವು ಬೆಳೆ ವೈದ್ಯರನ್ನು ತೆರೆಯಲು ಬಯಸುವಿರಾ?",
+      bho: "हम रउआ फसल के बेमारी पहचाने में मदद कर सकीं। का रउआ फसल डॉक्टर खोलल चाहत बानी?"
+    },
+    mandi: {
+      en: "You can view live mandi prices and commodity trends in the Market Analyst. Shall I take you there?",
+      hi: "आप मंडी विश्लेषक में आज के ताज़ा मंडी भाव देख सकते हैं। क्या मैं आपको वहाँ ले चलूँ?",
+      pa: "ਤੁਸੀਂ ਮੰਡੀ ਵਿਸ਼ਲੇਸ਼ਕ ਵਿੱਚ ਤਾਜ਼ਾ ਮੰਡੀ ਰੇਟ ਦੇਖ ਸਕਦੇ ਹੋ। ਕੀ ਉੱਥੇ ਚੱਲੀਏ?",
+      bn: "আপনি মার্কেট অ্যানালিস্টে সরাসরি মান্ডির দর দেখতে পারেন।",
+      kn: "ಮಾರುಕಟ್ಟೆ ವಿಶ್ಲೇಷಕದಲ್ಲಿ ನೀವು ಲೈವ್ ಮಂಡಿ ಬೆಲೆಗಳನ್ನು ನೋಡಬಹುದು.",
+      bho: "रउआ मंडी विश्लेषक में आज के ताजा मंडी भाव देख सकीं।"
+    },
+    weather: {
+      en: "I can show you today's weather forecast and farming advisory. Shall we open Weather?",
+      hi: "मैं आपको आज का मौसम और कृषि सलाह दिखा सकती हूँ। क्या मौसम पेज खोलें?",
+      pa: "ਮੈਂ ਤੁਹਾਨੂੰ ਅੱਜ ਦਾ ਮੌਸਮ ਅਤੇ ਖੇਤੀ ਸਲਾਹ ਦਿਖਾ ਸਕਦੀ ਹਾਂ।",
+      bn: "আমি আপনাকে আজকের আবহাওয়ার পূর্বাভাস দেখাতে পারি।",
+      kn: "ಇಂದಿನ ಹವಾಮಾನ ಮುನ್ಸೂಚನೆಯನ್ನು ನಾನು ತೋರಿಸಬಲ್ಲೆ.",
+      bho: "हम आज के मौसम आ खेती के सलाह देखा सकीं।"
+    },
+    schemes: {
+      en: "You can check PM-KISAN and agricultural subsidies in Government Schemes. Would you like to check them?",
+      hi: "आप सरकारी योजनाएं सेक्शन में पीएम किसान और सब्सिडी की जानकारी देख सकते हैं।",
+      pa: "ਤੁਸੀਂ ਸਰਕਾਰੀ ਸਕੀਮਾਂ ਵਿੱਚ ਪੀਐਮ-ਕਿਸਾਨ ਅਤੇ ਸਬਸਿਡੀਆਂ ਦੇਖ ਸਕਦੇ ਹੋ।",
+      bn: "আপনি সরকারি প্রকল্পে পিএম-কিসান ও ভর্তুকি দেখতে পারেন।",
+      kn: "ಸರ್ಕಾರಿ ಯೋಜನೆಗಳಲ್ಲಿ ನೀವು ಸಬ್ಸಿಡಿಗಳನ್ನು ಪರಿಶೀಲಿಸಬಹುದು.",
+      bho: "रउआ सरकारी योजना में पीएम-किसान आ सब्सिडी के जानकारी देख सकीं।"
+    },
+    certificate: {
+      en: "You can generate a blockchain-verified digital Fasal Certificate with QR code. Shall we open Fasal Certificate?",
+      hi: "आप ब्लॉकचेन सत्यापित डिजिटल फसल प्रमाणपत्र तैयार कर सकते हैं। क्या फसल प्रमाणपत्र खोलें?",
+      pa: "ਤੁਸੀਂ ਬਲਾਕਚੇਨ ਪ੍ਰਮਾਣਿਤ ਡਿਜੀਟਲ ਫ਼ਸਲ ਸਰਟੀਫਿਕੇਟ ਤਿਆਰ ਕਰ ਸਕਦੇ ਹੋ।",
+      bn: "আপনি ব্লকচেইন যাচাইকৃত ডিজিটাল ফসল শংসাপত্র তৈরি করতে পারেন।",
+      kn: "ನೀವು ಬ್ಲಾಕ್‌ಚೈನ್ ಪರಿಶೀಲಿತ ಡಿಜಿಟಲ್ ಬೆಳೆ ಪ್ರಮಾಣಪತ್ರವನ್ನು ರಚಿಸಬಹುದು.",
+      bho: "रउआ ब्लॉकचेन सत्यापित डिजिटल फसल प्रमाणपत्र बना सकीं।"
+    },
+    profile: {
+      en: "You can view and download your Kisan Digital ID Card in your profile. Shall we go to Profile?",
+      hi: "आप अपनी प्रोफ़ाइल में किसान डिजिटल आईडी कार्ड देख और डाउनलोड कर सकते हैं।",
+      pa: "ਤੁਸੀਂ ਆਪਣੀ ਪ੍ਰੋਫਾਈਲ ਵਿੱਚ ਕਿਸਾਨ ਡਿਜੀਟਲ ਆਈਡੀ ਕਾਰਡ ਦੇਖ ਸਕਦੇ ਹੋ।",
+      bn: "আপনি আপনার প্রোফাইলে কিষাণ ডিজিটাল আইডি কার্ড দেখতে পারেন।",
+      kn: "ನಿಮ್ಮ ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿ ಕಿಸಾನ್ ಡಿಜಿಟಲ್ ಗುರುತಿನ ಚੀಟಿ ನೋಡಬಹುದು.",
+      bho: "रउआ आपन प्रोफाइल में किसान डिजिटल आईडी कार्ड देख सकीं।"
+    }
   };
 
+  let category = 'general';
+  if (q.includes("doctor") || q.includes("disease") || q.includes("bimari") || q.includes("keeda") || q.includes("pest")) {
+    intent = "navigate_crop_doctor";
+    category = "doctor";
+  } else if (q.includes("mandi") || q.includes("bhav") || q.includes("price") || q.includes("rate") || q.includes("market")) {
+    intent = "query_market_prices";
+    category = "mandi";
+  } else if (q.includes("weather") || q.includes("mausam") || q.includes("barish") || q.includes("rain")) {
+    intent = "navigate_weather";
+    category = "weather";
+  } else if (q.includes("yojana") || q.includes("scheme") || q.includes("kisan") || q.includes("subsidy")) {
+    intent = "navigate_schemes";
+    category = "schemes";
+  } else if (q.includes("certificate") || q.includes("fasal") || q.includes("blockchain") || q.includes("praman")) {
+    intent = "navigate_fasal_certificate";
+    category = "certificate";
+  } else if (q.includes("id") || q.includes("card") || q.includes("profile")) {
+    intent = "navigate_profile";
+    category = "profile";
+  }
+
+  const categoryResponses = responses[category] || responses.general;
+  const responseText = categoryResponses[language] || categoryResponses.en;
+
   return {
-    response: responseMap[language] || responseEn,
+    response: responseText,
     intent,
     entities: {},
   };

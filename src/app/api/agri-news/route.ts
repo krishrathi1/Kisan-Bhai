@@ -21,8 +21,8 @@ const FALLBACK_NEWS: LiveAgriNewsItem[] = [
     description: "Cabinet approves significant hike in Minimum Support Price (MSP) for 14 Kharif crops to ensure 50% margin over all-India weighted average cost of production.",
     source: "PIB Krishi",
     link: "https://pib.gov.in/PressReleaseIframePage.aspx?PRID=2025732",
-    pubDate: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-    timeAgo: "2 hours ago",
+    pubDate: "",
+    timeAgo: "Date unavailable",
     category: "msp",
     badge: "MSP Alert",
     isHot: true,
@@ -33,8 +33,8 @@ const FALLBACK_NEWS: LiveAgriNewsItem[] = [
     description: "Next tranche of PM-KISAN Samman Nidhi to be credited directly into Aadhaar-seeded bank accounts of over 9 crore eligible farmer families.",
     source: "PM-KISAN DBT",
     link: "https://pmkisan.gov.in/",
-    pubDate: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
-    timeAgo: "5 hours ago",
+    pubDate: "",
+    timeAgo: "Date unavailable",
     category: "subsidy",
     badge: "Govt Scheme",
     isHot: true,
@@ -45,8 +45,8 @@ const FALLBACK_NEWS: LiveAgriNewsItem[] = [
     description: "Agricultural scientists release crucial guidelines on certified seed selection, bio-fungicide seed treatment, and soil moisture conservation for the upcoming monsoon.",
     source: "ICAR - IARI",
     link: "https://icar.org.in/",
-    pubDate: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-    timeAgo: "1 day ago",
+    pubDate: "",
+    timeAgo: "Date unavailable",
     category: "advisory",
     badge: "Crop Advisory",
   },
@@ -56,8 +56,8 @@ const FALLBACK_NEWS: LiveAgriNewsItem[] = [
     description: "State nodal agencies open portal for farmers to apply for 3HP to 10HP standalone solar photovoltaic water pumps with heavy central and state subsidies.",
     source: "MNRE Portal",
     link: "https://mnre.gov.in/solar/pm-kusum-scheme",
-    pubDate: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
-    timeAgo: "2 days ago",
+    pubDate: "",
+    timeAgo: "Date unavailable",
     category: "tech",
     badge: "Agri Tech",
   },
@@ -67,8 +67,8 @@ const FALLBACK_NEWS: LiveAgriNewsItem[] = [
     description: "Ministry of Chemicals & Fertilizers enhances logistical support and dealer subsidies for Nano fertilizers to lower cultivation expenses and protect soil microbiome.",
     source: "IFFCO / AgriDept",
     link: "https://enam.gov.in/web/",
-    pubDate: new Date(Date.now() - 72 * 3600 * 1000).toISOString(),
-    timeAgo: "3 days ago",
+    pubDate: "",
+    timeAgo: "Date unavailable",
     category: "subsidy",
     badge: "Fertilizers",
   },
@@ -76,7 +76,10 @@ const FALLBACK_NEWS: LiveAgriNewsItem[] = [
 
 function getTimeAgo(dateStr: string): string {
   try {
-    const diffMs = Date.now() - new Date(dateStr).getTime();
+    const timestamp = new Date(dateStr).getTime();
+    if (!Number.isFinite(timestamp)) return "Date unavailable";
+    const diffMs = Date.now() - timestamp;
+    if (diffMs < 0) return "Date unavailable";
     const diffMins = Math.floor(diffMs / (1000 * 60));
     if (diffMins < 60) return `${Math.max(1, diffMins)}m ago`;
     const diffHours = Math.floor(diffMins / 60);
@@ -132,12 +135,14 @@ function parseRssXml(xml: string): LiveAgriNewsItem[] {
       description = title;
     }
 
-    const pubDateMatch = /<pubDate>(.*?)<\/pubDate>/i.exec(itemContent);
-    const pubDate = pubDateMatch ? pubDateMatch[1] : new Date().toISOString();
+      const pubDateMatch = /<pubDate>(.*?)<\/pubDate>/i.exec(itemContent);
+      const pubDate = pubDateMatch?.[1]?.trim() || "";
+      const publishedAt = new Date(pubDate).getTime();
+      const isValidDate = Number.isFinite(publishedAt) && publishedAt <= Date.now() && Date.now() - publishedAt <= 7 * 24 * 60 * 60 * 1000;
 
     const { category, badge, isHot } = categorizeNews(title, description);
 
-    if (title) {
+    if (title && link && isValidDate) {
       items.push({
         id: `live-news-${items.length}-${Math.random().toString(36).substring(2, 7)}`,
         title,
@@ -181,10 +186,10 @@ export async function GET(request: NextRequest) {
       const liveItems = parseRssXml(xmlText);
 
       if (liveItems && liveItems.length > 0) {
-        return NextResponse.json({
+            return NextResponse.json({
           success: true,
           count: liveItems.length,
-          source: "Live Google Agriculture RSS & PIB",
+              source: "live-google-rss",
           data: liveItems,
           timestamp: new Date().toISOString(),
         });
@@ -198,7 +203,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     success: true,
     count: FALLBACK_NEWS.length,
-    source: "Verified Government Agricultural Bulletins (PIB / ICAR / PM-KISAN)",
+    source: "curated-fallback",
     data: FALLBACK_NEWS,
     timestamp: new Date().toISOString(),
   });

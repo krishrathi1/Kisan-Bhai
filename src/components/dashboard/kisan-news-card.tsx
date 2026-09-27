@@ -91,6 +91,7 @@ export function KisanNewsCard() {
   const [news, setNews] = useState<LiveAgriNewsItem[]>(DEFAULT_NEWS);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [newsSource, setNewsSource] = useState<"live-google-rss" | "curated-fallback">("curated-fallback");
 
   const fetchNews = async (isManual = false) => {
     if (isManual) setIsRefreshing(true);
@@ -102,6 +103,7 @@ export function KisanNewsCard() {
         const json = await res.json();
         if (json.data && Array.isArray(json.data) && json.data.length > 0) {
           setNews(json.data);
+          setNewsSource(json.source === "live-google-rss" ? "live-google-rss" : "curated-fallback");
         }
       }
     } catch (err) {
@@ -154,7 +156,7 @@ export function KisanNewsCard() {
                 </CardTitle>
                 <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  {t("dashboard.news.liveBadge")}
+                  {newsSource === "live-google-rss" ? t("dashboard.news.liveBadge") : "Curated"}
                 </span>
               </div>
               <CardDescription className="text-xs mt-0.5">
@@ -193,6 +195,12 @@ export function KisanNewsCard() {
             }`}
           >
             {t("dashboard.news.filters.all")}
+          </button>
+          <button
+            onClick={() => setFilter("tech")}
+            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${filter === "tech" ? "bg-purple-600 text-white shadow-sm" : "bg-muted hover:bg-muted/80 text-muted-foreground"}`}
+          >
+            Tech
           </button>
           <button
             onClick={() => setFilter("msp")}

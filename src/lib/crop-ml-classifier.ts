@@ -26,6 +26,14 @@ export interface KagglePrediction {
   imageHint: string;
 }
 
+export interface CropRankingOptions {
+  farmType?: 'irrigated' | 'rainfed';
+  waterSource?: string;
+  season?: string;
+  cropPreference?: string;
+  budget?: string;
+}
+
 // 22 Kaggle Crops Metadata & Agronomic Guidelines
 export const KAGGLE_CROP_METADATA: Record<
   string,
@@ -85,6 +93,30 @@ export const KAGGLE_CROP_METADATA: Record<
       hi: "दोमट मिट्टी में नाइट्रोजन और मध्यम वर्षा का स्तर मक्के की जोरदार बढ़वार के लिए आदर्श है।",
       pa: "ਜ਼ਮੀਨ ਵਿੱਚ ਨਾਈਟ੍ਰੋਜਨ ਅਤੇ ਤਾਪਮਾਨ ਮੱਕੀ ਦੇ ਵਧੀਆ ਝਾੜ ਲਈ ਪੂਰੀ ਤਰ੍ਹਾਂ ਅਨੁਕੂਲ ਹੈ।",
       en: "Balanced soil nutrients and moderate moisture requirements match hybrid maize characteristics."
+    }
+  },
+  millet: {
+    name: "Pearl Millet / Bajra (बाजरा / ਬਾਜਰਾ)",
+    icon: "Wheat",
+    plantingDates: "June 15 - July 15",
+    imageHint: "pearl millet bajra field",
+    localizedNames: {
+      hi: "उन्नत बाजरा (Pearl Millet)",
+      pa: "ਉੱਨਤ ਬਾਜਰਾ (Pearl Millet)",
+      bn: "উন্নত বাজরা (Pearl Millet)",
+      kn: "ಸಜ್ಜೆ (Pearl Millet)",
+      bho: "उन्नत बाजरा",
+      en: "Pearl Millet / Bajra"
+    },
+    defaultBenefits: {
+      hi: ["कम पानी और कम बजट में अच्छी पैदावार", "सूखा और गर्मी सहने वाली फसल", "स्थानीय मंडियों और पशु आहार में स्थिर मांग"],
+      pa: ["ਘੱਟ ਪਾਣੀ ਅਤੇ ਘੱਟ ਬਜਟ ਵਿੱਚ ਚੰਗੀ ਪੈਦਾਵਾਰ", "ਸੋਕਾ ਅਤੇ ਗਰਮੀ ਸਹਿਣ ਵਾਲੀ ਫ਼ਸਲ", "ਮੰਡੀਆਂ ਅਤੇ ਪਸ਼ੂ-ਚਾਰੇ ਵਿੱਚ ਮੰਗ"],
+      en: ["Good yield with low water and cultivation cost", "Tolerates drought and hot conditions", "Steady demand for grain and livestock feed"]
+    },
+    reasoningTemplate: {
+      hi: "कम वर्षा, गर्म तापमान और सीमित बजट वाले खेत में बाजरा आपकी परिस्थितियों के लिए उपयुक्त है।",
+      pa: "ਘੱਟ ਮੀਂਹ, ਗਰਮ ਤਾਪਮਾਨ ਅਤੇ ਸੀਮਿਤ ਬਜਟ ਵਾਲੇ ਖੇਤ ਲਈ ਬਾਜਰਾ ਢੁਕਵਾਂ ਹੈ।",
+      en: "Low rainfall, warm temperatures, and a limited budget make pearl millet a suitable choice for this field."
     }
   },
   cotton: {
@@ -572,11 +604,19 @@ export const KAGGLE_CROP_METADATA: Record<
 /**
  * Predicts the top 3 crops from the Kaggle dataset using Gaussian Naive Bayes / Maximum Likelihood Estimation
  */
-export function classifyCropFromKaggleDataset(features: KaggleFeatures): KagglePrediction[] {
+export function classifyCropFromKaggleDataset(
+  features: KaggleFeatures,
+  options: CropRankingOptions = {},
+): KagglePrediction[] {
   const scores: { cropKey: string; logProb: number }[] = [];
   const profiles = datasetProfiles as Record<string, any>;
+  const profileEntries = Object.entries(profiles);
+  if (isMilletPreference(options.cropPreference)) {
+    profileEntries.push(['millet', profiles.maize]);
+  }
 
-  for (const [cropKey, profile] of Object.entries(profiles)) {
+  for (const [cropKey, profile] of profileEntries) {
+    if (!isAllowedByFilters(cropKey, options)) continue;
     const mean = profile.mean;
     const std = profile.std;
 
@@ -598,7 +638,7 @@ export function classifyCropFromKaggleDataset(features: KaggleFeatures): KaggleP
       logLikelihood += -0.5 * Math.log(2 * Math.PI * variance) - Math.pow(val - m, 2) / (2 * variance);
     }
 
-    scores.push({ cropKey, logProb: logLikelihood });
+    scores.push({ cropKey, logProb: logLikelihood + getFilterScore(cropKey, options) });
   }
 
   // Sort by highest likelihood
@@ -630,6 +670,98 @@ export function classifyCropFromKaggleDataset(features: KaggleFeatures): KaggleP
   });
 }
 
+function getFilterScore(cropKey: string, options: CropRankingOptions): number {
+  const season = (options.season || 'kharif').toLowerCase();
+  const waterSource = (options.waterSource || '').toLowerCase();
+  const preference = (options.cropPreference || '').toLowerCase();
+  const budget = (options.budget || '').toLowerCase();
+  const seasonCrops: Record<string, string[]> = {
+    kharif: ['rice', 'maize', 'millet', 'cotton', 'pigeonpeas', 'mothbeans', 'mungbean', 'blackgram', 'jute'],
+    rabi: ['chickpea', 'kidneybeans', 'lentil', 'maize'],
+    zaid: ['maize', 'mungbean', 'blackgram', 'watermelon', 'muskmelon', 'cotton'],
+  };
+  const preferredCrop = Object.entries({
+    rice: ['rice', 'paddy', 'धान', 'झोना'],
+    maize: ['maize', 'corn', 'मक्का', 'मकई'],
+    millet: ['millet', 'bajra', 'बाजरा', 'बाजरी'],
+    cotton: ['cotton', 'कपास', 'नरमा'],
+    chickpea: ['chickpea', 'chana', 'gram', 'चना'],
+    kidneybeans: ['kidney bean', 'rajma', 'राजमा'],
+    pigeonpeas: ['pigeon pea', 'arhar', 'tur', 'अरहर', 'तुअर'],
+    lentil: ['lentil', 'masoor', 'मसूर'],
+    mungbean: ['mung', 'moong', 'मूंग'],
+    blackgram: ['black gram', 'urad', 'उड़द'],
+    watermelon: ['watermelon', 'तरबूज'],
+    muskmelon: ['muskmelon', 'खरबूजा'],
+    pomegranate: ['pomegranate', 'अनार'],
+    banana: ['banana', 'केला'],
+    papaya: ['papaya', 'पपीता'],
+    mango: ['mango', 'आम'],
+    grapes: ['grape', 'grapes', 'अंगूर'],
+    orange: ['orange', 'संतरा'],
+    coconut: ['coconut', 'नारियल'],
+    coffee: ['coffee', 'कॉफी'],
+    jute: ['jute', 'पटसन'],
+    apple: ['apple', 'सेब'],
+  }).find(([, aliases]) => aliases.some(alias => preference.includes(alias)))?.[0];
+
+  let score = 0;
+  if (preferredCrop) score += cropKey === preferredCrop ? 100 : -20;
+
+  const seasonKey = season.includes('rabi') || season.includes('winter') || season.includes('रबी')
+    ? 'rabi'
+    : season.includes('zaid') || season.includes('summer') || season.includes('जायद')
+      ? 'zaid'
+      : 'kharif';
+  if (seasonCrops[seasonKey]?.includes(cropKey)) score += 12;
+  else score -= 10;
+
+  const rainOnly = waterSource.includes('rain') || waterSource.includes('बारिश');
+  const highWater = ['rice', 'banana', 'papaya', 'coconut'].includes(cropKey);
+  if (rainOnly && highWater) score -= 18;
+  if (rainOnly && ['cotton', 'pigeonpeas', 'chickpea', 'mothbeans'].includes(cropKey)) score += 8;
+  if (options.farmType === 'irrigated' && highWater) score += 8;
+
+  const numericBudget = Number.parseInt(budget.replace(/[^0-9]/g, ''), 10);
+  const lowBudget = budget.includes('low') || (!Number.isNaN(numericBudget) && numericBudget < 20000);
+  const highBudget = budget.includes('high') || (!Number.isNaN(numericBudget) && numericBudget > 75000);
+  if (lowBudget && ['chickpea', 'lentil', 'mungbean', 'blackgram', 'mothbeans'].includes(cropKey)) score += 8;
+  if (lowBudget && ['sugarcane', 'banana', 'cotton', 'pomegranate'].includes(cropKey)) score -= 8;
+  if (highBudget && ['cotton', 'banana', 'pomegranate', 'grapes'].includes(cropKey)) score += 5;
+
+  return score;
+}
+
+function isMilletPreference(preference = ''): boolean {
+  const normalizedPreference = preference.toLowerCase();
+  return ['millet', 'bajra', 'बाजरा', 'बाजरी'].some(alias => normalizedPreference.includes(alias));
+}
+
+function isAllowedByFilters(cropKey: string, options: CropRankingOptions): boolean {
+  const season = (options.season || 'kharif').toLowerCase();
+  const waterSource = (options.waterSource || '').toLowerCase();
+  const preference = (options.cropPreference || '').toLowerCase();
+  const seasonKey = season.includes('rabi') || season.includes('winter') || season.includes('रबी')
+    ? 'rabi'
+    : season.includes('zaid') || season.includes('summer') || season.includes('जायद')
+      ? 'zaid'
+      : 'kharif';
+  const seasonCrops: Record<string, string[]> = {
+    kharif: ['rice', 'maize', 'millet', 'cotton', 'pigeonpeas', 'mothbeans', 'mungbean', 'blackgram', 'jute'],
+    rabi: ['chickpea', 'kidneybeans', 'lentil', 'maize'],
+    zaid: ['maize', 'millet', 'mungbean', 'blackgram', 'watermelon', 'muskmelon', 'cotton'],
+  };
+  if (!seasonCrops[seasonKey].includes(cropKey)) return false;
+
+  const rainOnly = waterSource.includes('rain') || waterSource.includes('बारिश');
+  if (rainOnly && ['rice', 'banana', 'papaya', 'coconut'].includes(cropKey)) return false;
+
+  if (isMilletPreference(preference)) {
+    return cropKey === 'millet' || ['maize', 'mothbeans', 'mungbean', 'blackgram', 'pigeonpeas'].includes(cropKey);
+  }
+  return true;
+}
+
 /**
  * Maps the user's form inputs (Soil Type, Season, Location, Water Source, Farm Type) into Kaggle ML numerical features
  */
@@ -640,6 +772,11 @@ export function mapFarmerInputsToKaggleFeatures(inputs: {
   waterSource?: string;
   season?: string;
   previousCrop?: string;
+  weather?: {
+    temperatureC: number;
+    humidityPercent: number;
+    rainfallMm: number;
+  };
 }): KaggleFeatures {
   const soil = (inputs.soilType || '').toLowerCase();
   const season = (inputs.season || 'kharif').toLowerCase();
@@ -671,7 +808,7 @@ export function mapFarmerInputsToKaggleFeatures(inputs: {
     N = Math.max(30, N - 15); // Heavy feeder crop
   }
 
-  // 3. Environmental Temperature & Humidity based on Season
+  // 3. Use live location weather when available; otherwise use seasonal estimates.
   let temperature = 28.0;
   let humidity = 75.0;
 
@@ -687,13 +824,26 @@ export function mapFarmerInputsToKaggleFeatures(inputs: {
     humidity = 82.0;
   }
 
+  if (inputs.weather) {
+    temperature = inputs.weather.temperatureC;
+    humidity = inputs.weather.humidityPercent;
+  }
+
   // 4. Effective Rainfall & Water availability (mm)
   let rainfall = 110.0;
-  if (isIrrigated) {
-    rainfall = 195.0; // Ample canal/borewell irrigation equivalent
+  const waterSource = (inputs.waterSource || '').toLowerCase();
+  if (waterSource.includes('rain')) {
+    rainfall = season.includes('rabi') ? 35.0 : season.includes('zaid') ? 25.0 : 85.0;
+  } else if (waterSource.includes('canal') || waterSource.includes('borewell') || waterSource.includes('river')) {
+    rainfall = 180.0;
+  } else if (waterSource.includes('tank')) {
+    rainfall = 130.0;
+  } else if (isIrrigated) {
+    rainfall = 195.0;
   } else {
-    rainfall = season.includes('rabi') ? 45.0 : 85.0; // Rainfed
+    rainfall = season.includes('rabi') ? 45.0 : 85.0;
   }
+  if (inputs.weather) rainfall = Math.max(0, inputs.weather.rainfallMm);
 
   return {
     N: Math.round(N),

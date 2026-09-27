@@ -207,12 +207,12 @@ export default function VerifyPage({
           <div className="flex items-center justify-center gap-2">
             <Image
               src="/favicon.ico"
-              alt="BeejMantra Logo"
+              alt="Krishi Mitra Logo"
               width={24}
               height={24}
             />
             <span className="text-xl font-bold font-headline" style={{ color: "#19C866" }}>
-              BeejMantra
+              Krishi Mitra
             </span>
           </div>
           <p className="text-xs tracking-wider uppercase font-medium" style={{ color: "#9AA39E" }}>
@@ -414,7 +414,7 @@ export default function VerifyPage({
         <div className="text-center">
           <Button asChild variant="ghost" size="sm">
             <Link href="/" style={{ color: "#9AA39E" }}>
-              ← Return to BeejMantra
+              ← Return to Krishi Mitra
             </Link>
           </Button>
         </div>

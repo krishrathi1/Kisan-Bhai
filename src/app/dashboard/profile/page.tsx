@@ -261,7 +261,7 @@ export default function ProfilePage() {
                 Kisan Digital Identity Card
               </CardTitle>
               <CardDescription className="text-xs">
-                Your verified digital identity inside the BeejMantra ecosystem.
+                Your verified digital identity inside the Krishi Mitra ecosystem.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-2">

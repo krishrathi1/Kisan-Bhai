@@ -1,5 +1,5 @@
 /**
- * Permissioned-ledger abstraction for BeejMantra.
+ * Permissioned-ledger abstraction for Krishi Mitra.
  *
  * This is intentionally a simple hash-linked record chain stored in Supabase.
  * It is not a Hyperledger Fabric network and should not be described as one.

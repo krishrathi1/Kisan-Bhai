@@ -1,4 +1,3 @@
-
 {
     "common": {
         "loading": "लोड हो रहा है",
@@ -343,6 +342,22 @@
                 "waterPump": "पानी का पंप (1HP)",
                 "cowManure": "गाय का गोबर (50 किलो)",
                 "neemOil": "नीम का तेल कीटनाशक"
+            },
+            "equipmentFinder": {
+                "eyebrow": "कृषि उपकरण सुविधा",
+                "title": "अपने निकट कृषि उपकरण खरीदें या किराए पर लें",
+                "description": "आस-पास के आपूर्तिकर्ताओं और किराया सेवाओं को खोजने के लिए अपना शहर या ज़िला दर्ज करें।",
+                "buy": "उपकरण खरीदें",
+                "rent": "उपकरण किराए पर लें",
+                "locationLabel": "आपका शहर या ज़िला",
+                "locationPlaceholder": "उदा. पुणे, लुधियाना, करनाल",
+                "useSampleLocation": "पुणे आज़माएं",
+                "showingResults": "{{location}} के पास {{mode}} विकल्प दिखाए जा रहे हैं",
+                "price": "कीमत",
+                "directions": "रास्ता देखें",
+                "contact": "संपर्क करें",
+                "noResultsTitle": "आस-पास कोई सूची उपलब्ध नहीं है",
+                "noResultsDescription": "निकटवर्ती शहर या ज़िला खोजें। हम और अधिक स्थानीय आपूर्तिकर्ताओं को जोड़ रहे हैं।"
             }
         }
     },
@@ -455,7 +470,7 @@
             "terms": "उपयोग की शर्तें"
         }
     },
-     "privacy": {
+    "privacy": {
         "description": "आपकी गोपनीयता के प्रति हमारी प्रतिबद्धता।",
         "backToSettings": "सेटिंग्स पर वापस जाएं",
         "lastUpdated": {
@@ -664,11 +679,11 @@
             "soilType": "मिट्टी का प्रकार (वैकल्पिक)",
             "selectSoilType": "मिट्टी का प्रकार चुनें",
             "soilTypes": {
-                "black": "काली",
-                "red": "लाल",
-                "loamy": "दोमट",
-                "sandy": "रेतीली",
-                "clay": "चिकनी"
+                "black": "काली मिट्टी (रेगुर)",
+                "red": "लाल मिट्टी",
+                "loamy": "दोमट मिट्टी",
+                "sandy": "रेतीली मिट्टी",
+                "clay": "चिकनी मिट्टी"
             },
             "waterSource": "जल स्रोत (वैकल्पिक)",
             "selectWaterSource": "जल स्रोत चुनें",
@@ -687,7 +702,15 @@
             },
             "previousCrop": "पिछली फसल (वैकल्पिक)",
             "budget": "बजट (वैकल्पिक)",
-            "keyBenefits": "मुख्य लाभ"
+            "keyBenefits": "मुख्य लाभ",
+            "locationLabel": "खेत का स्थान",
+            "locationRequired": "स्थान चुनना आवश्यक है। कृपया मानचित्र से चुनें।",
+            "landSizePlaceholder": "उदा. 2 एकड़",
+            "landSizeRequired": "भूमि का आकार आवश्यक है।",
+            "previousCropPlaceholder": "उदा. गेहूं",
+            "budgetPlaceholder": "उदा. 10,000 रुपये",
+            "soilsForState": "के लिए उपलब्ध मिट्टी के प्रकार",
+            "selectSeason": "सीज़न चुनें"
         }
     },
     "chatbot": {
@@ -705,103 +728,103 @@
             "home": "होम",
             "features": "सुविधाएं",
             "howItWorks": "यह कैसे काम करता है",
-            "pricing": "मूल्य (Pricing)",
+            "pricing": "मूल्य",
             "languages": "भाषाएं",
             "forFarmers": "किसानों के लिए",
             "aboutUs": "हमारे बारे में",
-            "signIn": "लॉगिन (Sign In)",
-            "getStarted": "Get Started",
+            "signIn": "लॉगिन",
+            "getStarted": "शुरू करें",
             "goToDashboard": "डैशबोर्ड पर जाएं",
-            "tagline": "AI Assistant for Indian Farmers"
+            "tagline": "भारतीय किसानों के लिए AI सहायक"
         },
         "hero": {
             "badge": "आपकी खेती का साथी",
-            "titleLine1": "Your Kheti Partner,",
-            "titleLine2": "Har Kadam Saath.",
-            "description": "BeejMantra आपके कृषि निर्णयों को स्मार्ट बनाता है AI के साथ — फसल, मंडी, मौसम और सरकारी योजनाएं सब एक जगह।",
-            "pillAi": "AI Powered",
-            "pillVoice": "Voice Support",
-            "pillLanguages": "In Your Language",
-            "ctaGetStarted": "Get Started →",
-            "ctaVoice": "Annapurna se poochho",
-            "trustLine": "देशभर के हजारों किसानों का भरोसा • Trusted by thousands of farmers across India"
+            "titleLine1": "आपकी खेती का सच्चा साथी,",
+            "titleLine2": "हर कदम साथ।",
+            "description": "कृषि मित्र आपके खेती के निर्णयों को AI के साथ स्मार्ट बनाता है — फसल, मंडी भाव, मौसम और सरकारी योजनाएं सब एक ही जगह।",
+            "pillAi": "AI संचालित",
+            "pillVoice": "वॉयस सुविधा",
+            "pillLanguages": "आपकी अपनी भाषा में",
+            "ctaGetStarted": "शुरू करें →",
+            "ctaVoice": "अन्नपूर्णा से पूछें",
+            "trustLine": "देशभर के हजारों किसानों का अटूट भरोसा"
         },
         "chatCard": {
             "headerTitle": "अन्नपूर्णा",
-            "headerSubtitle": "AI Assistant",
-            "userMessage": "मेरी फसल के पत्ते पीले हो रहे हैं, क्या करूं?",
+            "headerSubtitle": "AI सहायक",
+            "userMessage": "मेरी फसल के पत्ते पीले हो रहे हैं, क्या करूँ?",
             "aiMessage": "फोटो भेजिए, मैं समस्या पहचानने में मदद करती हूँ। 🌱",
-            "inputPlaceholder": "Type or speak...",
+            "inputPlaceholder": "टाइप करें या बोलें...",
             "voiceCta": "बोलकर पूछें"
         },
         "features": {
             "cropDoctor": {
                 "title": "फसल डॉक्टर",
                 "description": "फोटो भेजो, बीमारी पहचानो और तुरंत उपाय पाओ।",
-                "cta": "Check Now →"
+                "cta": "अभी जांचें →"
             },
             "mandiBhav": {
                 "title": "मंडी भाव",
                 "description": "रियल-टाइम मंडी रेट्स और AI से बेहतर बेचने का समय जानो।",
-                "cta": "View Prices →"
+                "cta": "भाव देखें →"
             },
             "mausam": {
                 "title": "मौसम",
                 "description": "आपके खेत के लिए सटीक मौसम और सुझाव।",
-                "cta": "Check Weather →"
+                "cta": "मौसम देखें →"
             },
             "yojana": {
                 "title": "सरकारी योजना",
                 "description": "योजना खोजो, पात्रता चेक करो और अप्लाई करो।",
-                "cta": "Explore Schemes →"
+                "cta": "योजनाएं देखें →"
             },
             "agriStore": {
                 "title": "एग्री स्टोर",
                 "description": "बीज, खाद, टूल्स और मशीन बेस्ट प्राइस पर खरीदें।",
-                "cta": "Shop Now →"
+                "cta": "खरीदारी करें →"
             }
         },
         "languageStrip": {
             "title": "6 भारतीय भाषाएं",
             "subtitle": "अपनी भाषा, अपनी सुविधा",
-            "voiceTitle": "Voice First, Kisan First",
+            "voiceTitle": "पहले आवाज़, पहले किसान",
             "voiceSubtitle": "बोलकर पूछो, तुरंत जवाब पाओ।",
-            "voiceCta": "Voice Se Poochho",
+            "voiceCta": "बोलकर पूछें",
             "toastTitle": "भाषा बदली गई ({{name}})",
-            "toastDesc": "BeejMantra अब {{name}} में प्रदर्शित हो रहा है।"
+            "toastDesc": "Krishi Mitra अब {{name}} में प्रदर्शित हो रहा है।"
         },
         "howItWorks": {
-            "badge": "3 आसान चरण • How It Works",
+            "badge": "3 आसान चरण",
             "title": "खेती को आसान और लाभकारी बनाएं",
             "subtitle": "बिना किसी जटिल तकनीक के, सीधे अपनी भाषा में अपने मोबाइल से सही कृषि निर्णय लें।",
-            "ctaStartFree": "Start Free Now",
+            "ctaStartFree": "अभी मुफ्त शुरू करें",
             "step1": {
                 "number": "01",
                 "badge": "सरल इनपुट",
                 "title": "फोटो खींचें या बोलकर बताएं",
-                "subtitle": "Snap Photo or Speak Query",
+                "subtitle": "फोटो लें या बोलकर बताएं",
                 "desc": "खेत में खड़े होकर सीधे मोबाइल से रोगग्रस्त पत्ती की फोटो लें या अन्नपूर्णा AI को बोलकर अपनी समस्या बताएं।"
             },
             "step2": {
                 "number": "02",
                 "badge": "तेज AI विश्लेषण",
                 "title": "AI सेकंड में करता है विश्लेषण",
-                "subtitle": "Instant Multimodal AI Diagnosis",
+                "subtitle": "त्वरित AI निदान",
                 "desc": "गूगल जेमिनी 2.0 AI फसल की बीमारी, कीट प्रकोप या पोषक तत्वों की कमी का तुरंत विश्लेषण करता है।"
             },
             "step3": {
                 "number": "03",
                 "badge": "अधिकतम मुनाफा",
                 "title": "सटीक समाधान व सही मंडी भाव",
-                "subtitle": "Actionable Remedies & Maximum Profit",
+                "subtitle": "सटीक समाधान व अधिकतम लाभ",
                 "desc": "जैविक देसी नुस्खे, सटीक कृषि दवाएं, नजदीकी कृषि दुकान लिंक और फसल बेचने का सबसे सही समय जानें।"
             },
             "startFree": "अभी मुफ्त शुरू करें"
         },
         "farmerStories": {
-            "badge": "किसान अनुभव • Farmer Stories",
+            "badge": "किसान अनुभव",
             "title": "देशभर के किसानों का अटूट भरोसा",
-            "subtitle": "सुनिए उन किसान भाइयों की जुबानी, जिन्होंने BeejMantra से अपनी उपज और मुनाफे को बढ़ाया।",
+            "subtitle": "सुनिए उन किसान भाइयों की जुबानी, जिन्होंने Krishi Mitra से अपनी उपज और मुनाफे को बढ़ाया।",
             "story1": {
                 "name": "रमेश पाटिल",
                 "location": "पुणे, महाराष्ट्र",
@@ -822,10 +845,10 @@
             }
         },
         "faq": {
-            "badge": "अक्सर पूछे जाने वाले सवाल • FAQs",
+            "badge": "अक्सर पूछे जाने वाले सवाल",
             "title": "किसान भाइयों के सामान्य प्रश्न",
-            "subtitle": "BeejMantra के उपयोग से जुड़े आपके सभी सवालों के सरल जवाब।",
-            "q1": "क्या BeejMantra किसानों के लिए पूरी तरह मुफ्त है?",
+            "subtitle": "Krishi Mitra के उपयोग से जुड़े आपके सभी सवालों के सरल जवाब।",
+            "q1": "क्या Krishi Mitra किसानों के लिए पूरी तरह मुफ्त है?",
             "a1": "हाँ, फसल रोग पहचान, लाइव मंडी भाव, मौसम की जानकारी और सरकारी योजनाओं की जानकारी सभी किसान भाइयों के लिए 100% निःशुल्क है।",
             "q2": "अगर मुझे टाइप करना नहीं आता तो क्या मैं बोलकर पूछ सकता हूँ?",
             "a2": "बिल्कुल! अन्नपूर्णा AI पूरी तरह वॉयस-सपोर्टेड है। आप माइक का बटन दबाकर अपनी मातृभाषा (हिंदी, कन्नड़, बांग्ला, भोजपुरी आदि) में बोलकर सवाल पूछ सकते हैं।",
@@ -841,7 +864,7 @@
             "helplineTitle": "कृषि विशेषज्ञों से सीधे बात करने के लिए टोल-फ्री डायल करें",
             "helplineSubtitle": "भारत सरकार का 24x7 निःशुल्क किसान सहायता नंबर:",
             "callButton": "+91 8905905953 पर कॉल करें",
-            "brandDesc": "Your Kheti Partner, Har Kadam Saath. भारतीय किसानों के लिए सुलभ AI, सटीक भाव और विश्वसनीय परामर्श।",
+            "brandDesc": "आपकी खेती का साथी, हर कदम साथ। भारतीय किसानों के लिए सुलभ AI, सटीक भाव और विश्वसनीय परामर्श।",
             "servicesTitle": "प्रमुख सेवाएं",
             "cropDoctor": "फसल डॉक्टर",
             "mandiPrices": "मंडी भाव",
@@ -856,12 +879,12 @@
             "privacy": "गोपनीयता नीति",
             "terms": "नियम व शर्तें",
             "community": "किसान संवाद मंच",
-            "copyright": "BeejMantra. सर्वाधिकार सुरक्षित।",
+            "copyright": "Krishi Mitra. सर्वाधिकार सुरक्षित।",
             "builtFor": "भारतीय किसानों के लिए"
         },
         "voiceModal": {
             "title": "अन्नपूर्णा AI वॉयस सहायक",
-            "subtitle": "Annapurna Voice Assistant • बोलकर पूछें",
+            "subtitle": "अन्नपूर्णा वॉयस सहायक • बोलकर पूछें",
             "listening": "सुन रहे हैं... कृपया बोलिए",
             "tapMic": "माइक दबाकर सवाल बोलें",
             "youAsked": "आपने पूछा:",
@@ -880,15 +903,33 @@
             "signInDesc": "अपने खेत के रिकॉर्ड और AI सलाहकार के लिए साइन इन करें।",
             "google": "Google से जारी रखें",
             "orEmail": "या ईमेल से",
-            "emailLabel": "ईमेल (Email Address)",
-            "passwordLabel": "पासवर्ड (Password)",
+            "emailLabel": "ईमेल पता",
+            "passwordLabel": "पासवर्ड",
             "processing": "कृपया प्रतीक्षा करें...",
-            "createBtn": "खाता बनाएं (Create Account)",
-            "signInBtn": "लॉगिन करें (Sign In)",
+            "createBtn": "खाता बनाएं",
+            "signInBtn": "लॉगिन करें",
             "alreadyHave": "पहले से खाता है?",
             "noAccount": "खाता नहीं है?",
             "loginLink": "लॉगिन करें",
             "registerLink": "यहाँ नया खाता बनाएं"
         }
+    },
+    "locationPicker": {
+        "searchPlaceholder": "गाँव, ज़िला या शहर खोजें...",
+        "loading": "मानचित्र लोड हो रहा है...",
+        "loadFailed": "गूगल मैप्स लोड नहीं हो सका।",
+        "noApiKey": "इंटरएक्टिव मानचित्र के लिए NEXT_PUBLIC_GOOGLE_MAPS_API_KEY जोड़ें।",
+        "useMyLocation": "मेरे स्थान का उपयोग करें",
+        "hint": "अपने खेत का स्थान चुनने के लिए मानचित्र पर क्लिक करें या पिन खींचें।",
+        "selectedLocation": "चुना गया स्थान",
+        "state": "राज्य",
+        "district": "ज़िला",
+        "notFound": "स्थान नहीं मिला",
+        "tryDifferent": "कृपया कोई अन्य नाम खोजें या मानचित्र पर क्लिक करें।",
+        "unavailable": "स्थान अनुपलब्ध है",
+        "browserNoSupport": "यह ब्राउज़र डिवाइस स्थान का समर्थन नहीं करता है।",
+        "permissionNeeded": "स्थान अनुमति आवश्यक है",
+        "allowAccess": "ब्राउज़र में स्थान अनुमति दें और पुनः प्रयास करें।",
+        "searchLocation": "स्थान खोजें"
     }
 }

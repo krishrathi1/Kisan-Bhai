@@ -9,7 +9,6 @@ import {
   TrendingUp,
   Landmark,
   CloudSun,
-  Wallet,
   PackageCheck,
   ShoppingBag,
   Link2,
@@ -54,15 +53,15 @@ export function Footer() {
         </div>
 
         {/* Links Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pt-4">
           
           {/* Col 1: Brand */}
-          <div className="col-span-2 md:col-span-1 space-y-3">
+          <div className="space-y-3">
             <Link href="/" className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-[#245B35] border border-[#FAF5E8]/30 flex items-center justify-center shadow-xs">
                 <DesiSproutLogo className="w-5 h-5" />
               </div>
-              <span className="font-headline font-black text-2xl text-[#FAF5E8]">BeejMantra</span>
+              <span className="font-headline font-black text-2xl text-[#FAF5E8]">Krishi Mitra</span>
             </Link>
             <p className="text-xs sm:text-sm text-[#FAF5E8]/70 leading-relaxed">
               {t("landing.footer.brandDesc")}
@@ -115,12 +114,6 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard/benefits" className="hover:text-[#FDE047] transition-colors flex items-center gap-2">
-                  <Wallet className="h-3.5 w-3.5 text-[#4ADE80]" />
-                  <span>{t("landing.footer.benefitsCalculator")}</span>
-                </Link>
-              </li>
-              <li>
                 <Link href="/dashboard/traceability" className="hover:text-[#FDE047] transition-colors flex items-center gap-2">
                   <PackageCheck className="h-3.5 w-3.5 text-[#4ADE80]" />
                   <span>{t("landing.footer.traceability")}</span>
@@ -141,40 +134,11 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Col 4: Trust & Policies */}
-          <div className="space-y-3">
-            <h4 className="font-headline font-bold text-sm text-[#FAF5E8]">
-              {t("landing.footer.policiesTitle")}
-            </h4>
-            <ul className="space-y-2 text-xs sm:text-sm text-[#FAF5E8]/70">
-              <li>
-                <Link href="/dashboard/privacy" className="hover:text-[#FDE047] transition-colors">
-                  {t("landing.footer.privacyPolicy")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/dashboard/terms" className="hover:text-[#FDE047] transition-colors">
-                  {t("landing.footer.termsOfService")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/dashboard/settings" className="hover:text-[#FDE047] transition-colors">
-                  {t("landing.footer.dataSecurity")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/dashboard/learn" className="hover:text-[#FDE047] transition-colors">
-                  {t("landing.footer.farmerCharter")}
-                </Link>
-              </li>
-            </ul>
-          </div>
-
         </div>
 
         {/* Bottom Copyright */}
         <div className="pt-8 border-t border-[#12361D] flex flex-col sm:flex-row items-center justify-between text-xs text-[#FAF5E8]/60 gap-4">
-          <p>© {new Date().getFullYear()} BeejMantra — {t("landing.footer.rights")}</p>
+          <p>© {new Date().getFullYear()} Krishi Mitra — {t("landing.footer.rights")}</p>
           <div className="flex items-center gap-1 text-[#FAF5E8]/80 font-medium">
             <span>{t("landing.footer.madeWith")}</span>
             <Heart className="h-3.5 w-3.5 text-[#EF4444] fill-current mx-0.5" />

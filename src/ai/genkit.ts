@@ -15,5 +15,5 @@ export const ai = genkit({
         : { apiKey: 'dummy_api_key_for_fallback' }
     ),
   ],
-  model: 'googleai/gemini-2.0-flash',
+  model: 'googleai/gemini-3.8-flash',
 });

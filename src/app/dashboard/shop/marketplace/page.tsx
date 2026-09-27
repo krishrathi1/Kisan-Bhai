@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Mic, PackageSearch, Search, ShoppingCart, Square, AlertCircle } from "lucide-react";
+import { ArrowLeft, BadgeIndianRupee, CheckCircle2, LocateFixed, MapPin, Mic, PackageSearch, Phone, Search, ShoppingCart, Square, Tractor, Wrench, AlertCircle } from "lucide-react";
 import { useTranslation } from "@/contexts/language-context";
 import { useMemo, useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
@@ -43,12 +43,24 @@ const productImages: Record<string, string> = {
   neemOil: "/images/cotton_crop.jpg",
 };
 
+type EquipmentMode = "buy" | "rent";
+
+const equipmentListings = [
+  { equipment: "Tractor (45 HP)", type: "rent" as EquipmentMode, shop: "Kisan Machinery Hub", locations: ["pune", "nashik", "maharashtra"], distance: "4.2 km", price: "₹1,200 / day", availability: "Available today", phone: "tel:+919876543210" },
+  { equipment: "Power Tiller", type: "buy" as EquipmentMode, shop: "GreenField Agro Centre", locations: ["pune", "satara", "maharashtra"], distance: "7.8 km", price: "₹1,18,000", availability: "In stock", phone: "tel:+919876543211" },
+  { equipment: "Rotavator (6 ft)", type: "rent" as EquipmentMode, shop: "Punjab Farm Rentals", locations: ["ludhiana", "amritsar", "punjab"], distance: "5.1 km", price: "₹900 / day", availability: "Available tomorrow", phone: "tel:+919876543212" },
+  { equipment: "Solar Water Pump", type: "buy" as EquipmentMode, shop: "Suryodaya Irrigation", locations: ["jaipur", "kota", "rajasthan"], distance: "6.4 km", price: "₹72,500", availability: "Delivery in 3 days", phone: "tel:+919876543213" },
+  { equipment: "Mini Combine Harvester", type: "rent" as EquipmentMode, shop: "Namma Agri Rentals", locations: ["bengaluru", "bangalore", "mandya", "karnataka"], distance: "9.6 km", price: "₹2,500 / day", availability: "Available this week", phone: "tel:+919876543214" },
+];
+
 const SpeechRecognition =
   (typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition));
 
 export default function MarketplacePage() {
   const { t, language } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
+  const [location, setLocation] = useState('');
+  const [equipmentMode, setEquipmentMode] = useState<EquipmentMode>('buy');
   const [isRecording, setIsRecording] = useState(false);
   const [isCheckingRelevance, setIsCheckingRelevance] = useState(false);
   const [isRelevant, setIsRelevant] = useState(true);
@@ -64,6 +76,15 @@ export default function MarketplacePage() {
       product.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [searchQuery, products]);
+
+  const matchedEquipment = useMemo(() => {
+    const normalizedLocation = location.trim().toLowerCase();
+    return equipmentListings.filter((listing) => {
+      const matchesMode = listing.type === equipmentMode;
+      const matchesLocation = !normalizedLocation || listing.locations.some((place) => normalizedLocation.includes(place) || place.includes(normalizedLocation));
+      return matchesMode && matchesLocation;
+    });
+  }, [equipmentMode, location]);
   
   useEffect(() => {
     const checkRelevance = async () => {
@@ -137,6 +158,66 @@ export default function MarketplacePage() {
             </Link>
         </Button>
       </div>
+
+      <section className="mb-10 rounded-2xl border bg-card p-5 shadow-sm md:p-7">
+        <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-2 text-primary">
+              <Tractor className="h-5 w-5" />
+              <span className="text-sm font-semibold uppercase tracking-wide">{t('shop.marketplace.equipmentFinder.eyebrow')}</span>
+            </div>
+            <h2 className="text-2xl font-bold font-headline">{t('shop.marketplace.equipmentFinder.title')}</h2>
+            <p className="mt-1 text-muted-foreground">{t('shop.marketplace.equipmentFinder.description')}</p>
+          </div>
+          <div className="flex shrink-0 rounded-lg border bg-background p-1">
+            {(['buy', 'rent'] as EquipmentMode[]).map((mode) => (
+              <Button key={mode} type="button" size="sm" variant={equipmentMode === mode ? 'default' : 'ghost'} onClick={() => setEquipmentMode(mode)}>
+                {mode === 'buy' ? <ShoppingCart className="mr-2 h-4 w-4" /> : <Wrench className="mr-2 h-4 w-4" />}
+                {t(`shop.marketplace.equipmentFinder.${mode}`)}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mb-6 flex flex-col gap-2 sm:flex-row">
+          <div className="relative flex-1">
+            <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input value={location} onChange={(event) => setLocation(event.target.value)} placeholder={t('shop.marketplace.equipmentFinder.locationPlaceholder')} className="pl-9" aria-label={t('shop.marketplace.equipmentFinder.locationLabel')} />
+          </div>
+          <Button type="button" variant="outline" onClick={() => setLocation('Pune')}>
+            <LocateFixed className="mr-2 h-4 w-4" />{t('shop.marketplace.equipmentFinder.useSampleLocation')}
+          </Button>
+        </div>
+
+        {location.trim() && <p className="mb-4 text-sm text-muted-foreground">{t('shop.marketplace.equipmentFinder.showingResults', { location, mode: t(`shop.marketplace.equipmentFinder.${equipmentMode}`).toLowerCase() })}</p>}
+
+        {matchedEquipment.length > 0 ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {matchedEquipment.map((listing) => (
+              <Card key={`${listing.shop}-${listing.equipment}`} className="border-primary/20">
+                <CardHeader className="pb-3">
+                  <div className="mb-2 flex items-start justify-between gap-3">
+                    <div className="rounded-lg bg-primary/10 p-2 text-primary"><Wrench className="h-5 w-5" /></div>
+                    <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground">{listing.distance}</span>
+                  </div>
+                  <CardTitle className="text-lg">{listing.equipment}</CardTitle>
+                  <p className="text-sm font-medium text-muted-foreground">{listing.shop}</p>
+                </CardHeader>
+                <CardContent className="space-y-3 pb-4">
+                  <div className="flex items-center justify-between text-sm"><span className="flex items-center gap-2 text-muted-foreground"><BadgeIndianRupee className="h-4 w-4" />{t('shop.marketplace.equipmentFinder.price')}</span><strong>{listing.price}</strong></div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground"><CheckCircle2 className="h-4 w-4 text-primary" />{listing.availability}</div>
+                </CardContent>
+                <CardFooter className="grid grid-cols-2 gap-2 pt-0">
+                  <Button asChild className="w-full"><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${listing.shop}, ${listing.locations[0]}`)}`} target="_blank" rel="noreferrer"><MapPin className="mr-2 h-4 w-4" />{t('shop.marketplace.equipmentFinder.directions')}</a></Button>
+                  <Button asChild variant="outline" className="w-full"><a href={listing.phone}><Phone className="mr-2 h-4 w-4" />{t('shop.marketplace.equipmentFinder.contact')}</a></Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Alert><PackageSearch className="h-4 w-4" /><AlertTitle>{t('shop.marketplace.equipmentFinder.noResultsTitle')}</AlertTitle><AlertDescription>{t('shop.marketplace.equipmentFinder.noResultsDescription')}</AlertDescription></Alert>
+        )}
+      </section>
       
        <div className="mb-8 flex items-center gap-2">
             <div className="relative flex-grow">

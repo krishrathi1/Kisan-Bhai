@@ -27,7 +27,7 @@ const notoDevanagari = Noto_Sans_Devanagari({
 });
 
 export const metadata: Metadata = {
-  title: 'BeejMantra — Your Kheti Partner, Har Kadam Saath',
+  title: 'Krishi Mitra — Your Kheti Partner, Har Kadam Saath',
   description: 'AI Assistant for Indian Farmers — crop doctor, live mandi rates, weather, and government schemes in your native language.',
   icons: {
     icon: '/favicon.ico',

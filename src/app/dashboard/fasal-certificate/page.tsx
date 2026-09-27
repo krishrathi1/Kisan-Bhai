@@ -298,7 +298,7 @@ export default function FasalCertificatePage() {
               {/* Header */}
               <div className="text-center space-y-1">
                 <p className="text-xs tracking-[0.3em] uppercase font-bold" style={{ color: "#19C866" }}>
-                  🌿 BEEJMANTRA
+                  🌿 KRISHI MITRA
                 </p>
                 <h2 className="text-2xl font-bold tracking-wide" style={{ color: "#F5F7F5" }}>
                   FASAL CERTIFICATE
